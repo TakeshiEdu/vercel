@@ -1,0 +1,5187 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>バスナビおおいた - 統合UI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --background: #f7f9fc;
+      --surface-low: #f2f4f7;
+      --surface-card: #ffffff;
+      --surface-high: #e6e8eb;
+      --surface-highest: #e0e3e6;
+      --primary: #002068;
+      --primary-container: #003399;
+      --secondary-fixed: #dce1ff;
+      --secondary-container: #c5d0fe;
+      --text: #191c1e;
+      --text-muted: #444653;
+      --outline: #747684;
+      --outline-soft: rgba(116, 118, 132, 0.15);
+      --error: #ba1a1a;
+      --error-container: #ffdad6;
+      --error-text: #93000a;
+      --radius-lg: 32px;
+      --radius-md: 24px;
+      --radius-sm: 16px;
+      --shadow-soft: 0 8px 24px rgba(25, 28, 30, 0.08);
+      --shadow-float: 0 12px 32px rgba(25, 28, 30, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: max(900px, 100dvh);
+      background:
+        radial-gradient(120% 80% at 100% -10%, #dce1ff 0%, rgba(220, 225, 255, 0) 54%),
+        radial-gradient(120% 95% at -20% 120%, #e8eefc 0%, rgba(232, 238, 252, 0) 58%),
+        var(--background);
+      color: var(--text);
+      font-family: "Inter", "Noto Sans JP", sans-serif;
+      line-height: 1.6;
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+      line-height: 1;
+    }
+
+    .app {
+      position: relative;
+      width: 100%;
+      max-width: 460px;
+      min-height: 100dvh;
+      margin: 0 auto;
+      padding-bottom: 132px;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 45;
+      padding: 12px 12px 0;
+    }
+
+    .topbar-inner {
+      display: grid;
+      grid-template-columns: 40px 1fr 40px;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(20px);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .top-icon {
+      width: 40px;
+      height: 40px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--primary);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .menu-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: rgba(8, 18, 42, 0.28);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+    }
+
+    .menu-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .side-menu {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 90;
+      width: min(84vw, 340px);
+      height: 100dvh;
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: var(--shadow-float);
+      transform: translateX(-105%);
+      transition: transform 220ms ease;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .side-menu.open {
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+
+    .menu-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 0 10px;
+    }
+
+    .menu-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .menu-item {
+      width: 100%;
+      border: 0;
+      border-radius: 18px;
+      padding: 13px 14px;
+      background: var(--surface-low);
+      color: var(--primary);
+      font: inherit;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .menu-item.active {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .title {
+      margin: 0;
+      color: var(--primary);
+      text-align: center;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .main {
+      padding: 20px 16px 0;
+    }
+
+    .screen {
+      display: none;
+      animation: screen-in 260ms ease;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    @keyframes screen-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .card {
+      margin-bottom: 14px;
+      padding: 18px;
+      border-radius: var(--radius-md);
+      background: var(--surface-card);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .card.soft {
+      background: var(--surface-low);
+      box-shadow: none;
+    }
+
+    .label {
+      display: inline-block;
+      margin: 0 0 8px;
+      color: #5c6072;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .headline {
+      margin: 0;
+      color: var(--primary);
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.14;
+    }
+
+    .sub {
+      margin: 4px 0 0;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      border: 0;
+      border-radius: 999px;
+      background: var(--secondary-fixed);
+      color: #3a456b;
+      padding: 7px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.25;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    button.chip {
+      cursor: pointer;
+      transition: transform 160ms ease, opacity 180ms ease;
+    }
+
+    button.chip:active {
+      transform: scale(0.98);
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 18px;
+      height: 46px;
+      padding: 0 16px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 160ms ease, box-shadow 220ms ease, opacity 180ms ease;
+    }
+
+    .btn:active {
+      transform: scale(0.985);
+    }
+
+    .btn:disabled {
+      opacity: 0.82;
+      cursor: not-allowed;
+    }
+
+    .btn.primary {
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--primary), var(--primary-container));
+      box-shadow: 0 12px 24px rgba(0, 32, 104, 0.24);
+    }
+
+    .btn.ghost {
+      color: var(--primary);
+      background: #ffffff;
+    }
+
+    .btn-content {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-spinner {
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #ffffff;
+      border-radius: 999px;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .input {
+      width: 100%;
+      height: 44px;
+      border: 1px solid var(--outline-soft);
+      border-radius: 14px;
+      background: #ffffff;
+      color: var(--text);
+      padding: 0 12px;
+      font-family: inherit;
+      font-size: 14px;
+    }
+
+    .input::placeholder {
+      color: rgba(68, 70, 83, 0.6);
+    }
+
+    .input:focus {
+      outline: 2px solid rgba(0, 32, 104, 0.2);
+      border-color: rgba(0, 32, 104, 0.25);
+    }
+
+    .field-wrap {
+      position: relative;
+    }
+
+    .suggest-box {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      z-index: 35;
+      max-height: 210px;
+      overflow: auto;
+      border-radius: 16px;
+      background: #ffffff;
+      box-shadow: 0 16px 28px rgba(25, 28, 30, 0.14);
+      border: 1px solid var(--outline-soft);
+    }
+
+    .suggest-box[hidden] {
+      display: none;
+    }
+
+    .suggest-item {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      text-align: left;
+      padding: 10px 12px;
+      cursor: pointer;
+      display: grid;
+      gap: 2px;
+    }
+
+    .suggest-item:hover {
+      background: #edf2ff;
+    }
+
+    .suggest-main {
+      color: #1a2444;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .suggest-sub {
+      color: #66708a;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .current-stop-card .headline {
+      font-size: 34px;
+      line-height: 1.05;
+    }
+
+    #homeRefreshLocationBtn {
+      margin-top: 10px;
+      background: #ffffff;
+      border: 1px solid var(--outline-soft);
+      color: var(--primary);
+      white-space: nowrap;
+      font-size: 11px;
+      padding: 6px 10px;
+      line-height: 1.15;
+      flex-shrink: 0;
+    }
+
+    .hero-card {
+      position: relative;
+      overflow: hidden;
+      color: #ffffff;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, var(--primary), var(--primary-container));
+      box-shadow: 0 14px 36px rgba(0, 32, 104, 0.24);
+    }
+
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      top: -110px;
+      right: -56px;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.11);
+      pointer-events: none;
+    }
+
+    .hero-card .label {
+      color: rgba(234, 241, 255, 0.92);
+    }
+
+    .hero-card .headline {
+      color: #ffffff;
+      font-size: 28px;
+    }
+
+    .hero-card .sub {
+      color: #dde7ff;
+    }
+
+    #homeNextTime {
+      font-size: 13px;
+      font-weight: 700;
+      color: #dde7ff;
+    }
+
+    #homeNextRemain {
+      margin: 10px 0 4px;
+      color: #ffffff;
+      font-size: clamp(36px, 11vw, 62px);
+      font-weight: 900;
+      letter-spacing: -0.05em;
+      line-height: 0.98;
+      white-space: nowrap;
+      word-break: keep-all;
+      overflow-wrap: normal;
+    }
+
+    #homeNextRemain[data-mode="text"] {
+      font-size: clamp(30px, 8.4vw, 44px);
+      letter-spacing: -0.02em;
+    }
+
+    #homeNextStatus {
+      margin-top: 0;
+      color: #ffffff;
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    #homeNextStatus[data-empty="1"] {
+      color: #e4ecff;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0;
+    }
+
+    #openStopDetail {
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    .search-shell {
+      display: grid;
+      gap: 16px;
+    }
+
+    .search-lead {
+      display: grid;
+      gap: 4px;
+      padding: 4px 2px 0;
+    }
+
+    .search-lead h2 {
+      margin: 0;
+      color: var(--text);
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
+    }
+
+    .route-stack {
+      position: relative;
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: var(--radius-lg);
+      background: var(--surface-card);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .route-stack::before {
+      content: "";
+      position: absolute;
+      left: 28px;
+      top: 42px;
+      bottom: 42px;
+      width: 2px;
+      background: var(--surface-highest);
+    }
+
+    .route-input {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      align-items: center;
+      gap: 10px;
+      padding-left: 2px;
+    }
+
+    .route-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .route-icon.start {
+      color: var(--primary);
+      background: var(--secondary-fixed);
+    }
+
+    .route-icon.goal {
+      color: #4c5978;
+      background: #ebedf2;
+    }
+
+    .input-hint {
+      margin: 0;
+      color: #606b84;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .error-text {
+      margin: 0;
+      color: var(--error-text);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .time-toggle {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      padding: 5px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-low);
+    }
+
+    .time-toggle .chip {
+      background: transparent;
+      color: #4b546b;
+      padding: 10px 8px;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .time-toggle .chip.active {
+      background: #ffffff;
+      color: var(--primary);
+      box-shadow: 0 8px 18px rgba(25, 28, 30, 0.08);
+    }
+
+    .nearby-cta {
+      border: 0;
+      border-radius: 12px;
+      background: var(--secondary-container);
+      color: #22335f;
+      height: 40px;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 0 12px;
+      cursor: pointer;
+    }
+
+    .time-panel {
+      margin-top: 10px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-low);
+      padding: 12px;
+    }
+
+    .time-panel[hidden] {
+      display: none;
+    }
+
+    .time-now-note {
+      margin: 0;
+      color: #2f3c57;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .time-now-note small {
+      display: block;
+      margin-top: 4px;
+      color: #66708a;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .schedule-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .schedule-field {
+      display: grid;
+      gap: 4px;
+    }
+
+    .schedule-field span {
+      color: #677189;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+
+    .schedule-input {
+      width: 100%;
+      height: 40px;
+      border-radius: 10px;
+      border: 1px solid var(--outline-soft);
+      background: #ffffff;
+      color: var(--text);
+      padding: 0 10px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .schedule-mode {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .mode-chip {
+      border: 0;
+      border-radius: 999px;
+      background: #ffffff;
+      color: #42506e;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .mode-chip.active {
+      background: var(--secondary-fixed);
+      color: var(--primary);
+    }
+
+    .nearby-panel {
+      margin-top: 8px;
+      border-radius: var(--radius-sm);
+      background: var(--surface-low);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .nearby-panel[hidden] {
+      display: none;
+    }
+
+    .nearby-status {
+      margin: 0;
+      color: #3f4a65;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .nearby-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .nearby-item {
+      border: 0;
+      border-radius: 12px;
+      background: #ffffff;
+      text-align: left;
+      padding: 10px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nearby-item strong {
+      font-size: 13px;
+      color: #1d2b48;
+    }
+
+    .nearby-item span {
+      color: #61708b;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .recent-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .recent-wide {
+      grid-column: 1 / -1;
+      border: 0;
+      border-radius: 20px;
+      background: #ecf0ff;
+      text-align: left;
+      cursor: pointer;
+      padding: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .recent-mini {
+      border: 0;
+      border-radius: 18px;
+      background: var(--surface-low);
+      text-align: left;
+      cursor: pointer;
+      min-height: 120px;
+      padding: 12px;
+      display: grid;
+      align-content: space-between;
+    }
+
+    .approach-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .approach-grid .headline {
+      font-size: 27px;
+    }
+
+    .approach-field {
+      position: relative;
+    }
+
+    .approach-actions {
+      margin-top: 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .approach-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .approach-filter {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .approach-filter .chips {
+      gap: 6px;
+    }
+
+    .approach-filter .chip {
+      border: 1px solid var(--outline-soft);
+      background: #ffffff;
+      color: #3d4864;
+    }
+
+    .approach-filter .chip.active {
+      border-color: transparent;
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .approach-item {
+      border: 0;
+      border-radius: 18px;
+      background: var(--surface-low);
+      text-align: left;
+      cursor: pointer;
+      padding: 12px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .approach-item .top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .approach-item .stop {
+      color: #1d2b48;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .approach-item .meta {
+      color: #5c6781;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .approach-item .time {
+      color: var(--primary);
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .approach-result-card {
+      border-radius: 18px;
+      background: #ffffff;
+      box-shadow: 0 8px 22px rgba(25, 28, 30, 0.07);
+      padding: 12px;
+      display: grid;
+      gap: 7px;
+    }
+
+    .approach-result-card .row strong {
+      color: #0e204f;
+      font-size: 31px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .approach-delay-arrival {
+      margin: 0;
+      color: #d01818;
+      font-size: 13px;
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .bus-location-link {
+      border: 0;
+      background: transparent;
+      color: var(--primary);
+      padding: 0;
+      font: inherit;
+      font-weight: 800;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .bus-location-link:disabled {
+      color: var(--text-muted);
+      cursor: default;
+      text-decoration: none;
+    }
+
+    .timeline-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 95;
+      background: rgba(8, 18, 42, 0.32);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+    }
+
+    .timeline-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .timeline-sheet {
+      position: fixed;
+      left: 50%;
+      bottom: 0;
+      z-index: 100;
+      width: min(100%, 460px);
+      max-height: min(78dvh, 680px);
+      padding: 16px;
+      border-radius: 28px 28px 0 0;
+      background: #ffffff;
+      box-shadow: 0 -18px 42px rgba(25, 28, 30, 0.18);
+      transform: translate(-50%, 105%);
+      transition: transform 220ms ease;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .timeline-sheet.open {
+      transform: translate(-50%, 0);
+    }
+
+    .timeline-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .timeline-title {
+      margin: 0;
+      color: var(--primary);
+      font-size: 18px;
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .timeline-delay-arrival {
+      margin: 4px 0 0;
+      color: #d01818;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .timeline-list {
+      overflow: auto;
+      display: grid;
+      gap: 0;
+      padding: 2px 0 12px;
+    }
+
+    .timeline-stop {
+      position: relative;
+      display: grid;
+      grid-template-columns: 54px 18px minmax(0, 1fr);
+      gap: 10px;
+      min-height: 48px;
+      color: #5a647d;
+    }
+
+    .timeline-stop::before {
+      content: "";
+      position: absolute;
+      left: 62px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #d8def0;
+    }
+
+    .timeline-stop:first-child::before {
+      top: 12px;
+    }
+
+    .timeline-stop:last-child::before {
+      bottom: calc(100% - 12px);
+    }
+
+    .timeline-dot {
+      position: relative;
+      z-index: 1;
+      width: 14px;
+      height: 14px;
+      margin-top: 7px;
+      border-radius: 999px;
+      background: #c5d0fe;
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 0 2px #c5d0fe;
+    }
+
+    .timeline-stop.current .timeline-dot {
+      background: var(--primary);
+      box-shadow: 0 0 0 5px rgba(0, 32, 104, 0.16);
+    }
+
+    .timeline-stop.next .timeline-dot {
+      background: #ffffff;
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+
+    .timeline-stop.target .timeline-dot {
+      background: #ffffff;
+      box-shadow: 0 0 0 3px #0a7bff;
+    }
+
+    .timeline-stop.terminal .timeline-dot {
+      background: #eef2ff;
+      box-shadow: 0 0 0 2px #7b86a3;
+    }
+
+    .timeline-time {
+      padding-top: 4px;
+      color: #68738f;
+      font-size: 12px;
+      font-weight: 800;
+      text-align: right;
+    }
+
+    .timeline-name {
+      margin: 0;
+      color: #1f2f53;
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.25;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+
+    .timeline-note {
+      margin: 2px 0 0;
+      color: #69738e;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .timeline-stop.current .timeline-name,
+    .timeline-stop.current .timeline-note {
+      color: var(--primary);
+    }
+
+    .timeline-stop.target .timeline-name,
+    .timeline-stop.target .timeline-note {
+      color: #0a5bd3;
+    }
+
+    .approach-empty {
+      margin: 0;
+      color: #59647e;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .result-summary .headline {
+      font-size: 28px;
+    }
+
+    #resultList {
+      display: grid;
+      gap: 10px;
+    }
+
+    .list-item {
+      width: 100%;
+      border: 0;
+      border-radius: 18px;
+      background: #ffffff;
+      text-align: left;
+      cursor: pointer;
+      padding: 13px;
+      margin-bottom: 0;
+      box-shadow: 0 8px 22px rgba(25, 28, 30, 0.07);
+    }
+
+    .list-item.warning {
+      box-shadow: inset 4px 0 0 var(--error), 0 8px 22px rgba(25, 28, 30, 0.07);
+    }
+
+    .stop-summary .headline {
+      font-size: 34px;
+    }
+
+    .stop-live {
+      background: linear-gradient(140deg, #ffffff, #f4f7ff);
+    }
+
+    #stopNextTime {
+      font-size: 48px;
+      line-height: 1;
+    }
+
+    #stopNextStatus {
+      margin: 0;
+      background: var(--secondary-fixed);
+      color: #283963;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: right;
+    }
+
+    #stopNextRemain {
+      margin: 8px 0 2px;
+      color: var(--primary);
+      font-size: 38px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    #stopCurrentLocation,
+    #stopDelayInfo {
+      margin-top: 6px;
+    }
+
+    #stopTimetableList {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    #stopTimetableList .list-item {
+      margin: 0;
+      box-shadow: none;
+      background: var(--surface-low);
+    }
+
+    .search-action {
+      display: none;
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 104px;
+      z-index: 46;
+      width: 100%;
+      max-width: 460px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    .search-action.show {
+      display: block;
+    }
+
+    #runSearch {
+      width: 100%;
+      height: 56px;
+      border-radius: 20px;
+      font-size: 15px;
+    }
+
+    .bnav {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      z-index: 50;
+      width: auto;
+      max-width: 436px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      padding: 8px;
+      border-radius: 30px;
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(20px);
+      box-shadow: var(--shadow-float);
+    }
+
+    .tab {
+      border: 0;
+      border-radius: 16px;
+      background: transparent;
+      color: #6a7184;
+      padding: 8px 3px;
+      cursor: pointer;
+      display: grid;
+      justify-items: center;
+      gap: 2px;
+      transition: transform 160ms ease, background-color 200ms ease, color 200ms ease;
+    }
+
+    .tab:active {
+      transform: scale(0.96);
+    }
+
+    .tab-icon {
+      font-family: "Material Symbols Outlined";
+      font-size: 22px;
+      font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+      line-height: 1;
+    }
+
+    .tab-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+
+    .tab.active {
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--primary), var(--primary-container));
+      box-shadow: 0 8px 18px rgba(0, 32, 104, 0.24);
+    }
+
+    .tab.active .tab-icon {
+      font-variation-settings: "FILL" 1, "wght" 600, "GRAD" 0, "opsz" 24;
+    }
+
+    .muted {
+      opacity: 0.75;
+    }
+
+    .danger {
+      color: var(--error);
+      font-weight: 700;
+    }
+
+    .home-hero {
+      padding: 22px;
+    }
+
+    .home-hero-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .home-hero-row > div:first-child {
+      min-width: 0;
+    }
+
+    #homeCurrentStop {
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+
+    .home-countdown {
+      min-width: 124px;
+      flex-shrink: 0;
+      text-align: right;
+    }
+
+    .home-count-label {
+      display: block;
+      color: #dbe5ff;
+      font-size: 11px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .home-live-row {
+      margin-top: 12px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(10px);
+      display: grid;
+      gap: 7px;
+    }
+
+    .home-live-pill {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .home-live-line {
+      color: #ffffff;
+      font-size: clamp(20px, 5.8vw, 24px);
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+
+    .home-live-time {
+      color: #dce8ff;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .home-live-dest,
+    .home-live-status {
+      margin: 0;
+      color: #dce8ff;
+    }
+
+    .home-live-status {
+      color: #ffffff;
+    }
+
+    .home-bento-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .home-mybus-section {
+      margin-bottom: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .home-mybus-head {
+      padding: 0 2px;
+    }
+
+    .home-mybus-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .home-mybus-card {
+      min-height: 154px;
+      border: 0;
+      border-radius: 22px;
+      padding: 14px;
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--primary), var(--primary-container));
+      box-shadow: 0 12px 28px rgba(0, 32, 104, 0.2);
+      text-align: left;
+      cursor: pointer;
+      display: grid;
+      align-content: space-between;
+      gap: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .home-mybus-card::after {
+      content: "";
+      position: absolute;
+      width: 118px;
+      height: 118px;
+      right: -40px;
+      top: -48px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+      pointer-events: none;
+    }
+
+    .home-mybus-card[disabled] {
+      cursor: wait;
+      opacity: 0.82;
+    }
+
+    .home-mybus-stop {
+      margin: 0;
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: 900;
+      line-height: 1.14;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+
+    .home-mybus-direction,
+    .home-mybus-dest,
+    .home-mybus-status {
+      margin: 0;
+      color: #dce8ff;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.35;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+
+    .home-mybus-delay-arrival {
+      margin: 3px 0 0;
+      color: #ff8a80;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .home-mybus-time-row {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .home-mybus-time {
+      color: #ffffff;
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .home-mybus-remain {
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.16);
+      color: #ffffff;
+      padding: 5px 8px;
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .home-thread-card,
+    .home-quick-card {
+      margin-bottom: 0;
+      min-height: 100%;
+    }
+
+    .home-thread-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .home-thread-title {
+      margin: 0;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+
+    .home-thread {
+      position: relative;
+      padding-left: 21px;
+      display: grid;
+      gap: 11px;
+    }
+
+    .home-thread::before {
+      content: "";
+      position: absolute;
+      left: 7px;
+      top: 2px;
+      bottom: 2px;
+      width: 2px;
+      background: #cfd6eb;
+    }
+
+    .home-thread-step {
+      position: relative;
+      display: grid;
+      gap: 2px;
+    }
+
+    .home-thread-step::before {
+      content: "";
+      position: absolute;
+      left: -18px;
+      top: 5px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #b0bbd8;
+    }
+
+    .home-thread-step.current::before {
+      background: var(--primary);
+      box-shadow: 0 0 0 4px rgba(0, 32, 104, 0.14);
+    }
+
+    .home-thread-step span {
+      color: #1f2f53;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.2;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+
+    .home-thread-step small {
+      color: #68738f;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.25;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+
+    .home-quick-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .quick-action {
+      border: 0;
+      border-radius: 16px;
+      background: var(--surface-low);
+      color: #2d3a57;
+      min-height: 82px;
+      padding: 10px 8px;
+      display: grid;
+      gap: 6px;
+      align-content: center;
+      justify-items: center;
+      font-size: 11px;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      transition: transform 160ms ease, background-color 200ms ease;
+    }
+
+    .quick-action:active {
+      transform: scale(0.97);
+    }
+
+    .quick-action .material-symbols-outlined {
+      color: var(--primary);
+      font-size: 22px;
+      font-variation-settings: "FILL" 1, "wght" 600, "GRAD" 0, "opsz" 24;
+    }
+
+    .search-route-card {
+      position: relative;
+      padding: 16px;
+      border-radius: var(--radius-lg);
+    }
+
+    .search-route-card .route-stack {
+      margin: 0;
+      padding: 0 52px 0 0;
+      background: transparent;
+      box-shadow: none;
+      border-radius: 0;
+    }
+
+    .search-swap {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 38px;
+      height: 38px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--surface-high);
+      color: #47536f;
+      display: grid;
+      place-items: center;
+      pointer-events: none;
+      z-index: 3;
+      box-shadow: 0 2px 10px rgba(25, 28, 30, 0.1);
+    }
+
+    .approach-hero {
+      background: linear-gradient(135deg, #0a2f87, #1a4aa3);
+      color: #ffffff;
+      border-radius: var(--radius-lg);
+      box-shadow: 0 14px 30px rgba(0, 32, 104, 0.2);
+    }
+
+    .approach-hero .label,
+    .approach-hero .sub {
+      color: #dbe6ff;
+    }
+
+    .approach-hero .headline {
+      color: #ffffff;
+    }
+
+    .approach-search-card {
+      background: var(--surface-card);
+    }
+
+    .result-context-card {
+      margin-bottom: 10px;
+    }
+
+    .result-filter-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 0 2px 4px;
+      margin-bottom: 12px;
+      scrollbar-width: thin;
+    }
+
+    .result-filter-row .chip {
+      flex: 0 0 auto;
+      background: var(--surface-high);
+      color: #4b546b;
+    }
+
+    .result-filter-row .chip.active {
+      color: #ffffff;
+      background: linear-gradient(135deg, var(--primary), var(--primary-container));
+    }
+
+    .result-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .recent-route-item strong {
+      color: #1b2a4c;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .result-run-card {
+      padding: 14px;
+    }
+
+    .settings-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .settings-field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .settings-actions {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .settings-status {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .mybus-direction-panel {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 16px;
+      background: var(--surface-low);
+    }
+
+    .mybus-direction-list {
+      gap: 6px;
+    }
+
+    .mybus-direction-list .chip {
+      border: 1px solid var(--outline-soft);
+      background: #ffffff;
+      color: #3d4864;
+    }
+
+    .mybus-direction-list .chip.active {
+      border-color: transparent;
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .settings-mybus-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .settings-mybus-item {
+      border-radius: 16px;
+      background: #ffffff;
+      padding: 11px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .settings-mybus-item strong {
+      color: #1d2b48;
+      font-size: 13px;
+      line-height: 1.25;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+
+    .settings-mybus-item .sub {
+      margin: 2px 0 0;
+      font-size: 11px;
+    }
+
+    .result-run-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .result-run-time-row {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .result-time,
+    .result-arrival {
+      color: #0e204f;
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .result-arrow {
+      color: #6f7890;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .transfer-hint-card .btn {
+      margin-top: 10px;
+    }
+
+    .stop-live-hero {
+      border-radius: var(--radius-lg);
+      background: linear-gradient(140deg, #ffffff 0%, #f4f7ff 100%);
+    }
+
+    .stop-timetable-card {
+      margin-bottom: 14px;
+    }
+
+    @media (max-width: 370px) {
+      .headline {
+        font-size: 25px;
+      }
+
+      #homeNextRemain {
+        font-size: 42px;
+      }
+
+      #homeNextStatus {
+        font-size: 23px;
+      }
+
+      .search-lead h2 {
+        font-size: 26px;
+      }
+
+      .tab-label {
+        font-size: 9px;
+      }
+
+      .home-bento-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .home-mybus-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .home-live-line {
+        font-size: 20px;
+      }
+
+      .home-countdown {
+        min-width: 96px;
+      }
+
+      #homeRefreshLocationBtn {
+        font-size: 10px;
+        padding: 6px 8px;
+      }
+
+      .home-thread-title {
+        letter-spacing: 0.03em;
+      }
+    }
+
+    @media (max-width: 430px) {
+      .home-bento-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .home-mybus-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <button class="top-icon" id="openMenuBtn" type="button" aria-label="メニューを開く">
+          <span class="material-symbols-outlined">menu</span>
+        </button>
+        <h1 class="title" id="appTitle">バスナビおおいた</h1>
+        <button class="top-icon" id="openSettingsBtn" type="button" aria-label="設定を開く">
+          <span class="material-symbols-outlined">account_circle</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="menu-backdrop" id="menuBackdrop" hidden></div>
+    <aside class="side-menu" id="sideMenu" aria-hidden="true">
+      <div class="menu-head">
+        <div>
+          <span class="label" style="margin:0;">Menu</span>
+          <p class="sub" style="margin:2px 0 0;">画面を切り替えます</p>
+        </div>
+        <button class="top-icon" id="closeMenuBtn" type="button" aria-label="メニューを閉じる">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="menu-list">
+        <button class="menu-item" data-menu-target="home" type="button">
+          <span class="material-symbols-outlined">home</span>
+          <span>ホーム</span>
+        </button>
+        <button class="menu-item" data-menu-target="search" type="button">
+          <span class="material-symbols-outlined">search</span>
+          <span>ルート検索</span>
+        </button>
+        <button class="menu-item" data-menu-target="approach" type="button">
+          <span class="material-symbols-outlined">directions_bus</span>
+          <span>接近情報</span>
+        </button>
+        <button class="menu-item" data-menu-target="results" type="button">
+          <span class="material-symbols-outlined">list_alt</span>
+          <span>検索結果</span>
+        </button>
+        <button class="menu-item" data-menu-target="settings" type="button">
+          <span class="material-symbols-outlined">settings</span>
+          <span>設定</span>
+        </button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="screen active" data-screen="home">
+        <div class="card hero-card home-hero">
+          <div class="row home-hero-row">
+            <div>
+              <span class="label">最寄りバス停</span>
+              <p class="headline" id="homeCurrentStop">取得中...</p>
+              <p class="sub" id="homeCurrentSub">最寄りバス停を取得しています</p>
+            </div>
+            <div class="home-countdown">
+              <span class="home-count-label">次の到着まで</span>
+              <div id="homeNextRemain" data-mode="text">--</div>
+            </div>
+          </div>
+
+          <div class="home-live-row">
+            <div class="home-live-pill">
+              <span class="home-live-line" id="homeNextLine">-- 系統</span>
+              <span class="home-live-time" id="homeNextTime">--:--</span>
+            </div>
+            <p class="sub home-live-dest" id="homeNextDest">行き先: 取得中</p>
+            <p class="sub home-live-status" id="homeNextStatus" data-empty="1">--:--</p>
+            <button class="btn ghost" id="openStopDetail" type="button">バス停詳細へ</button>
+          </div>
+        </div>
+
+        <div class="home-mybus-section" id="homeMyBusSection" hidden>
+          <div class="row home-mybus-head">
+            <span class="label" style="margin:0;">My Bus</span>
+            <button class="chip" id="refreshMyBusCardsBtn" type="button">更新</button>
+          </div>
+          <div class="home-mybus-grid" id="homeMyBusGrid"></div>
+        </div>
+
+        <div class="home-bento-grid">
+          <div class="card soft home-thread-card">
+            <div class="home-thread-head">
+              <span class="label home-thread-title">接近ステータス</span>
+              <button class="chip" id="homeRefreshLocationBtn" type="button">現在地を再取得</button>
+            </div>
+            <div class="home-thread">
+              <div class="home-thread-step current">
+                <span id="homeThreadStop">現在地を確認中</span>
+                <small id="homeThreadStopMeta">位置情報を取得しています</small>
+              </div>
+              <div class="home-thread-step">
+                <span id="homeThreadRoute">次便情報を取得中</span>
+                <small id="homeThreadRouteMeta">接近データ照合中</small>
+              </div>
+              <div class="home-thread-step">
+                <span id="homeThreadEta">到着予定 --:--</span>
+                <small id="homeThreadEtaMeta">運行情報を取得しています</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="card home-quick-card">
+            <span class="label">Quick Action</span>
+            <div class="home-quick-grid">
+              <button class="quick-action" type="button" data-target="search">
+                <span class="material-symbols-outlined">search</span>
+                <span>ルート検索</span>
+              </button>
+              <button class="quick-action" type="button" data-target="approach">
+                <span class="material-symbols-outlined">directions_bus</span>
+                <span>接近情報</span>
+              </button>
+              <button class="quick-action" type="button" data-target="results">
+                <span class="material-symbols-outlined">list_alt</span>
+                <span>検索結果</span>
+              </button>
+              <button class="quick-action" type="button" data-target="stop">
+                <span class="material-symbols-outlined">location_on</span>
+                <span>バス停詳細</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card home-recent-card">
+          <div class="row" style="margin-bottom: 8px;">
+            <span class="label" style="margin: 0;">Recent Search</span>
+          </div>
+          <div id="homeRecentRoutes"></div>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="search">
+        <div class="search-shell">
+          <div class="search-lead">
+            <span class="label">Route Search</span>
+            <h2>ルート検索</h2>
+            <p class="sub" style="margin: 0;">出発地と目的地を入力して、最適な移動経路を表示します。</p>
+          </div>
+
+          <div class="card search-route-card">
+            <div class="route-stack">
+              <div class="route-input">
+                <span class="route-icon start">●</span>
+                <div class="field-wrap">
+                  <input class="input" id="fromInput" placeholder="出発バス停を入力" value="" autocomplete="off">
+                  <div class="suggest-box" id="fromSuggest" hidden></div>
+                </div>
+              </div>
+              <div class="route-input">
+                <span class="route-icon goal">◆</span>
+                <div class="field-wrap">
+                  <input class="input" id="toInput" placeholder="到着バス停を入力" value="" autocomplete="off">
+                  <div class="suggest-box" id="toSuggest" hidden></div>
+                </div>
+              </div>
+            </div>
+            <button class="search-swap" type="button" tabindex="-1" aria-hidden="true">
+              <span class="material-symbols-outlined">swap_vert</span>
+            </button>
+          </div>
+
+          <p class="input-hint">バス停からバス停への検索に対応しています。</p>
+          <p class="error-text" id="searchError" hidden></p>
+
+          <div class="card soft" style="margin-bottom: 0;">
+            <span class="label">出発時刻</span>
+            <div class="time-toggle" id="timeTabs">
+              <button class="chip active" data-time="now" type="button">現在</button>
+              <button class="chip" data-time="scheduled" type="button">時刻指定</button>
+            </div>
+            <div style="margin-top: 8px;">
+              <button class="nearby-cta" id="nearbySearchBtn" type="button">現在地から近いバス停を探す</button>
+            </div>
+
+            <div class="time-panel" id="nowPanel">
+              <p class="time-now-note">
+                現在時刻で最速ルートを検索します。
+                <small>交通状況を優先して、リアルタイムに候補を並び替えます。</small>
+              </p>
+            </div>
+
+            <div class="time-panel" id="scheduledPanel" hidden>
+              <div class="schedule-grid">
+                <label class="schedule-field">
+                  <span>日付</span>
+                  <input class="schedule-input" id="dateInput" type="date">
+                </label>
+                <label class="schedule-field">
+                  <span>時刻</span>
+                  <input class="schedule-input" id="timeInput" type="time" step="300">
+                </label>
+              </div>
+              <div class="schedule-mode" id="scheduleModeTabs">
+                <button class="mode-chip active" data-schedule-mode="depart" type="button">この時刻に出発</button>
+                <button class="mode-chip" data-schedule-mode="arrive" type="button">この時刻までに到着</button>
+              </div>
+            </div>
+
+            <div class="nearby-panel" id="nearbyPanel" hidden>
+              <p class="nearby-status" id="nearbyStatus">現在地付近のバス停候補</p>
+              <div class="nearby-list" id="nearbyList"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="row" style="margin-bottom: 10px;">
+              <span class="label" style="margin: 0;">最近の検索</span>
+              <button class="chip" id="clearRecentBtn" type="button">すべて削除</button>
+            </div>
+            <div class="recent-grid" id="searchRecentGrid"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="approach">
+        <div class="approach-grid">
+          <div class="card approach-hero">
+            <span class="label">Approaching Buses</span>
+            <p class="headline" style="margin-bottom: 4px;">接近情報</p>
+            <p class="sub" id="approachLeadSub">候補カードを選ぶか、入力してバス停を検索できます。</p>
+          </div>
+
+          <div class="card approach-search-card">
+            <span class="label">バス停を検索</span>
+            <div class="approach-field">
+              <input class="input" id="approachStopInput" placeholder="バス停名を入力（例: 南石垣）" value="" autocomplete="off">
+              <div class="suggest-box" id="approachSuggest" hidden></div>
+            </div>
+            <div class="approach-actions">
+              <button class="btn primary" id="runApproachSearch" type="button">接近情報を表示</button>
+              <button class="chip" id="refreshApproachCandidates" type="button">候補更新</button>
+            </div>
+            <p class="error-text" id="approachError" hidden></p>
+          </div>
+
+          <div class="card" id="approachCandidateCard">
+            <div class="row" style="margin-bottom: 8px;">
+              <span class="label" style="margin: 0;">おすすめ接近便</span>
+              <span class="sub" id="approachCandidateMeta" style="margin: 0;">取得中...</span>
+            </div>
+            <div class="approach-list" id="approachCandidateList"></div>
+          </div>
+
+          <div class="card">
+            <div class="row" style="margin-bottom: 8px;">
+              <span class="label" id="approachResultLabel" style="margin: 0;">接近便一覧</span>
+              <button class="chip" id="applyApproachToFrom" hidden type="button">この停留所を出発に設定</button>
+            </div>
+            <div class="approach-filter" id="approachDirectionFilterRow" hidden>
+              <span class="label" style="margin: 0;">方面フィルタ</span>
+              <div class="chips" id="approachDirectionFilterList"></div>
+            </div>
+            <div class="approach-list" id="approachResultList"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="results">
+        <div class="card result-summary result-context-card">
+          <span class="label">Search Result</span>
+          <p class="headline" id="resultRoute">-- -> --</p>
+          <p class="sub" id="resultMeta">検索後に候補を表示します。</p>
+        </div>
+        <div class="result-filter-row">
+          <button class="chip active" type="button">早い順</button>
+          <button class="chip" type="button">安い順</button>
+          <button class="chip" type="button">乗換なし</button>
+        </div>
+        <div id="resultList" class="result-list"></div>
+      </section>
+
+      <section class="screen" data-screen="stop">
+        <div class="card soft stop-summary">
+          <span class="label">Bus Stop Detail</span>
+          <p class="headline" id="stopDetailTitle">未選択</p>
+          <p class="sub" id="stopDetailSubtitle">検索結果から便を選択してください。</p>
+        </div>
+
+        <div class="card stop-live stop-live-hero">
+          <div class="row" style="align-items: flex-end;">
+            <div>
+              <span class="label">次のバス</span>
+              <p class="headline" id="stopNextTime">--:--</p>
+              <p class="sub" id="stopNextDestination">行き先: --</p>
+            </div>
+            <div style="text-align: right;">
+              <p id="stopNextStatus">-</p>
+              <p class="headline" id="stopNextRemain">--</p>
+            </div>
+          </div>
+          <p class="sub" id="stopCurrentLocation">現在地: --</p>
+          <p class="sub" id="stopDelayInfo">遅延情報: --</p>
+        </div>
+
+        <div class="card stop-timetable-card">
+          <div class="row" style="margin-bottom: 8px;">
+            <span class="label" style="margin: 0;">時刻表</span>
+            <span class="chip">平日</span>
+          </div>
+          <div id="stopTimetableList"></div>
+        </div>
+
+        <button class="btn primary" id="backToResults" style="width: 100%;" type="button">検索結果に戻る</button>
+      </section>
+
+      <section class="screen" data-screen="settings">
+        <div class="settings-grid">
+          <div class="card soft">
+            <span class="label">Settings</span>
+            <p class="headline">設定</p>
+            <p class="sub">現在地が取れない時に、ホーム上部へ表示するマイバス停を設定します。</p>
+          </div>
+
+          <div class="card">
+            <span class="label">My Bus</span>
+            <div class="settings-field">
+              <label class="sub" for="myBusStopInput" style="margin:0;">マイバス停</label>
+              <div class="field-wrap">
+                <input class="input" id="myBusStopInput" placeholder="例: 別府駅前" autocomplete="off">
+                <div class="suggest-box" id="myBusSuggest" hidden></div>
+              </div>
+            </div>
+            <div class="settings-field" style="margin-top: 12px;">
+              <span class="sub" style="margin:0;">方面</span>
+              <div class="mybus-direction-panel" id="myBusDirectionPanel">
+                <p class="sub" id="myBusDirectionStatus" style="margin:0;">バス停を入力すると方面を選べます。</p>
+                <div class="chips mybus-direction-list" id="myBusDirectionList"></div>
+              </div>
+            </div>
+            <div class="settings-actions" style="margin-top: 12px;">
+              <button class="btn primary" id="saveMyBusBtn" type="button">追加</button>
+              <button class="chip" id="clearMyBusBtn" type="button">全解除</button>
+            </div>
+            <p class="settings-status" id="myBusStatus" style="margin-top: 10px;">未設定</p>
+          </div>
+
+          <div class="card soft">
+            <span class="label">Preview</span>
+            <p class="sub" id="myBusPreview">保存すると、現在地取得に失敗した時だけホーム上部に表示します。</p>
+            <div class="settings-mybus-list" id="settingsMyBusList"></div>
+            <button class="btn ghost" id="showMyBusNowBtn" type="button" style="margin-top: 12px; width:100%;">マイバスを今すぐ表示</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="timeline-backdrop" id="busTimelineBackdrop" hidden></div>
+    <section class="timeline-sheet" id="busTimelineSheet" aria-hidden="true">
+      <div class="timeline-head">
+        <div>
+          <span class="label" style="margin:0;">Bus Stops</span>
+          <h2 class="timeline-title" id="busTimelineTitle">停車バス停</h2>
+          <p class="sub" id="busTimelineSub" style="margin-top:4px;">現在位置を確認できます。</p>
+        </div>
+        <button class="top-icon" id="closeBusTimelineBtn" type="button" aria-label="停車一覧を閉じる">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="timeline-list" id="busTimelineList"></div>
+    </section>
+
+    <div class="search-action" id="searchActionBar">
+      <button class="btn primary" id="runSearch" type="button">
+        <span class="btn-content">
+          <span id="runSearchLabel">ルート検索</span>
+          <span class="btn-spinner" id="runSearchSpinner" hidden></span>
+        </span>
+      </button>
+    </div>
+
+    <nav class="bnav" aria-label="Bottom navigation">
+      <button class="tab active" data-target="home" type="button">
+        <span class="tab-icon" aria-hidden="true">home</span>
+        <span class="tab-label">ホーム</span>
+      </button>
+      <button class="tab" data-target="search" type="button">
+        <span class="tab-icon" aria-hidden="true">search</span>
+        <span class="tab-label">検索</span>
+      </button>
+      <button class="tab" data-target="approach" type="button">
+        <span class="tab-icon" aria-hidden="true">directions_bus</span>
+        <span class="tab-label">接近情報</span>
+      </button>
+    </nav>
+  </div>
+
+  <script>
+    const API_BASE = `${window.location.origin}/api`;
+
+    const state = {
+      currentScreen: "home",
+      timeMode: "now",
+      scheduleMode: "depart",
+      nearbyTarget: "from",
+      homeRuns: [],
+      lastRuns: [],
+      lastSearchFrom: "",
+      lastSearchTo: "",
+      lastSearchFromRef: null,
+      lastSearchToRef: null,
+      lastFallback: "",
+      lastTransferHints: [],
+      trackingRunKey: "",
+      trackingMisses: 0,
+      trackingStartedAt: 0,
+      trackingPollCount: 0,
+      approachSelectedStop: "",
+      approachDirectionFilter: "__all__",
+      approachCandidatesLoadedAt: 0,
+      approachManualSearchActive: false,
+      approachRenderedBuses: [],
+      currentCoords: null,
+      currentCoordsAt: 0,
+      lastLocationError: null,
+      myBusStops: readMyBusStops(),
+      myBusStop: localStorage.getItem("busnaviMyBusStop") || "",
+      myBusDirectionOptions: [],
+      myBusSelectedDirectionKey: "__all__",
+      myBusCardData: []
+    };
+
+    const stopSelectState = {
+      fromConfirmed: true,
+      toConfirmed: true
+    };
+
+    const screens = Array.from(document.querySelectorAll(".screen"));
+    const tabs = Array.from(document.querySelectorAll(".tab"));
+    const menuItems = Array.from(document.querySelectorAll("[data-menu-target]"));
+    const openMenuBtn = document.getElementById("openMenuBtn");
+    const closeMenuBtn = document.getElementById("closeMenuBtn");
+    const openSettingsBtn = document.getElementById("openSettingsBtn");
+    const menuBackdrop = document.getElementById("menuBackdrop");
+    const sideMenu = document.getElementById("sideMenu");
+    const title = document.getElementById("appTitle");
+    const searchActionBar = document.getElementById("searchActionBar");
+    const nowPanel = document.getElementById("nowPanel");
+    const scheduledPanel = document.getElementById("scheduledPanel");
+    const dateInput = document.getElementById("dateInput");
+    const timeInput = document.getElementById("timeInput");
+    const fromInput = document.getElementById("fromInput");
+    const toInput = document.getElementById("toInput");
+    const fromSuggest = document.getElementById("fromSuggest");
+    const toSuggest = document.getElementById("toSuggest");
+    const nearbyPanel = document.getElementById("nearbyPanel");
+    const nearbyList = document.getElementById("nearbyList");
+    const nearbyStatus = document.getElementById("nearbyStatus");
+    const nearbySearchBtn = document.getElementById("nearbySearchBtn");
+    const searchError = document.getElementById("searchError");
+    const resultRoute = document.getElementById("resultRoute");
+    const resultMeta = document.getElementById("resultMeta");
+    const resultList = document.getElementById("resultList");
+    const runSearchBtn = document.getElementById("runSearch");
+    const runSearchLabel = document.getElementById("runSearchLabel");
+    const runSearchSpinner = document.getElementById("runSearchSpinner");
+    const homeCurrentStop = document.getElementById("homeCurrentStop");
+    const homeCurrentSub = document.getElementById("homeCurrentSub");
+    const homeRefreshLocationBtn = document.getElementById("homeRefreshLocationBtn");
+    const homeNextLine = document.getElementById("homeNextLine");
+    const homeNextDest = document.getElementById("homeNextDest");
+    const homeNextTime = document.getElementById("homeNextTime");
+    const homeNextRemain = document.getElementById("homeNextRemain");
+    const homeNextStatus = document.getElementById("homeNextStatus");
+    const homeMyBusSection = document.getElementById("homeMyBusSection");
+    const homeMyBusGrid = document.getElementById("homeMyBusGrid");
+    const refreshMyBusCardsBtn = document.getElementById("refreshMyBusCardsBtn");
+    const homeRecentRoutes = document.getElementById("homeRecentRoutes");
+    const homeThreadStop = document.getElementById("homeThreadStop");
+    const homeThreadStopMeta = document.getElementById("homeThreadStopMeta");
+    const homeThreadRoute = document.getElementById("homeThreadRoute");
+    const homeThreadRouteMeta = document.getElementById("homeThreadRouteMeta");
+    const homeThreadEta = document.getElementById("homeThreadEta");
+    const homeThreadEtaMeta = document.getElementById("homeThreadEtaMeta");
+    const searchRecentGrid = document.getElementById("searchRecentGrid");
+    const clearRecentBtn = document.getElementById("clearRecentBtn");
+    const approachLeadSub = document.getElementById("approachLeadSub");
+    const approachStopInput = document.getElementById("approachStopInput");
+    const approachSuggest = document.getElementById("approachSuggest");
+    const runApproachSearchBtn = document.getElementById("runApproachSearch");
+    const refreshApproachCandidatesBtn = document.getElementById("refreshApproachCandidates");
+    const approachError = document.getElementById("approachError");
+    const approachCandidateCard = document.getElementById("approachCandidateCard");
+    const approachCandidateMeta = document.getElementById("approachCandidateMeta");
+    const approachCandidateList = document.getElementById("approachCandidateList");
+    const approachResultLabel = document.getElementById("approachResultLabel");
+    const approachDirectionFilterRow = document.getElementById("approachDirectionFilterRow");
+    const approachDirectionFilterList = document.getElementById("approachDirectionFilterList");
+    const approachResultList = document.getElementById("approachResultList");
+    const applyApproachToFromBtn = document.getElementById("applyApproachToFrom");
+    const busTimelineBackdrop = document.getElementById("busTimelineBackdrop");
+    const busTimelineSheet = document.getElementById("busTimelineSheet");
+    const busTimelineTitle = document.getElementById("busTimelineTitle");
+    const busTimelineSub = document.getElementById("busTimelineSub");
+    const busTimelineList = document.getElementById("busTimelineList");
+    const closeBusTimelineBtn = document.getElementById("closeBusTimelineBtn");
+    const stopDetailTitle = document.getElementById("stopDetailTitle");
+    const stopDetailSubtitle = document.getElementById("stopDetailSubtitle");
+    const stopNextTime = document.getElementById("stopNextTime");
+    const stopNextDestination = document.getElementById("stopNextDestination");
+    const stopCurrentLocation = document.getElementById("stopCurrentLocation");
+    const stopDelayInfo = document.getElementById("stopDelayInfo");
+    const stopNextStatus = document.getElementById("stopNextStatus");
+    const stopNextRemain = document.getElementById("stopNextRemain");
+    const stopTimetableList = document.getElementById("stopTimetableList");
+    const myBusStopInput = document.getElementById("myBusStopInput");
+    const myBusSuggest = document.getElementById("myBusSuggest");
+    const myBusDirectionStatus = document.getElementById("myBusDirectionStatus");
+    const myBusDirectionList = document.getElementById("myBusDirectionList");
+    const saveMyBusBtn = document.getElementById("saveMyBusBtn");
+    const clearMyBusBtn = document.getElementById("clearMyBusBtn");
+    const myBusStatus = document.getElementById("myBusStatus");
+    const myBusPreview = document.getElementById("myBusPreview");
+    const settingsMyBusList = document.getElementById("settingsMyBusList");
+    const showMyBusNowBtn = document.getElementById("showMyBusNowBtn");
+
+    let trackingTimer = null;
+    let trackingAbortController = null;
+    let trackingRun = null;
+    const TRACKING_POLL_MS = 4000;
+    const TRACKING_WARMUP_MS = 45000;
+    const TRACKING_SOFT_TIMEOUT_MS = 120000;
+    let homeLiveTimer = null;
+    let myBusDirectionTimer = null;
+    const HOME_POLL_MS = 30000;
+    let approachLiveTimer = null;
+    let approachLiveAbortController = null;
+    const APPROACH_POLL_MS = 30000;
+    let resultsLiveTimer = null;
+    let resultsLiveAbortController = null;
+    const RESULTS_POLL_MS = 30000;
+
+    const titleMap = {
+      home: "バスナビおおいた",
+      search: "ルート検索",
+      approach: "接近情報",
+      results: "検索結果",
+      stop: "バス停詳細",
+      settings: "設定"
+    };
+
+    function stopTrackingLoop() {
+      if (trackingTimer) {
+        clearTimeout(trackingTimer);
+        trackingTimer = null;
+      }
+      if (trackingAbortController) {
+        trackingAbortController.abort();
+        trackingAbortController = null;
+      }
+      trackingRun = null;
+      state.trackingPollCount = 0;
+    }
+
+    function scheduleTrackingPoll(run, delayMs = TRACKING_POLL_MS) {
+      if (trackingTimer) {
+        clearTimeout(trackingTimer);
+      }
+      if (state.currentScreen !== "stop" || !run) {
+        trackingTimer = null;
+        return;
+      }
+
+      trackingTimer = setTimeout(async () => {
+        if (state.currentScreen !== "stop") {
+          return;
+        }
+        const shouldRefresh = (state.trackingPollCount % 3) === 0;
+        await updateTrackedBusInfo(run, { refresh: shouldRefresh, run });
+        state.trackingPollCount += 1;
+        scheduleTrackingPoll(run, TRACKING_POLL_MS);
+      }, Math.max(0, Number(delayMs) || 0));
+    }
+
+    function stopHomeLiveLoop() {
+      if (homeLiveTimer) {
+        clearTimeout(homeLiveTimer);
+        homeLiveTimer = null;
+      }
+    }
+
+    function scheduleHomeLivePoll(delayMs = HOME_POLL_MS) {
+      stopHomeLiveLoop();
+      if (state.currentScreen !== "home") {
+        return;
+      }
+
+      homeLiveTimer = setTimeout(async () => {
+        if (state.currentScreen !== "home") {
+          return;
+        }
+
+        if (document.hidden) {
+          scheduleHomeLivePoll(HOME_POLL_MS);
+          return;
+        }
+
+        await loadHomeLiveData({ silent: true });
+        await updateHomeMyBusCards({ silent: true });
+        scheduleHomeLivePoll(HOME_POLL_MS);
+      }, Math.max(0, Number(delayMs) || 0));
+    }
+
+    function stopApproachLiveLoop() {
+      if (approachLiveTimer) {
+        clearTimeout(approachLiveTimer);
+        approachLiveTimer = null;
+      }
+      if (approachLiveAbortController) {
+        approachLiveAbortController.abort();
+        approachLiveAbortController = null;
+      }
+    }
+
+    async function refreshApproachLiveData(options = {}) {
+      const stopName = String(state.approachSelectedStop || approachStopInput.value || "").trim();
+      if (!stopName) {
+        return;
+      }
+
+      try {
+        const controller = new AbortController();
+        approachLiveAbortController = controller;
+        const data = await fetchApproachDataByStop(stopName, {
+          refresh: Boolean(options.refresh),
+          gpsLimit: 10,
+          signal: controller.signal,
+        });
+        const resolvedStop = data.stop || stopName;
+        approachLeadSub.textContent = `${resolvedStop} の接近便を表示中です`;
+        renderApproachResults(resolvedStop, data.buses || [], {
+          keepFilter: true,
+          directionOptions: data.directionOptions || [],
+        });
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          return;
+        }
+      } finally {
+        if (approachLiveAbortController) {
+          approachLiveAbortController = null;
+        }
+      }
+    }
+
+    function scheduleApproachLivePoll(delayMs = APPROACH_POLL_MS) {
+      stopApproachLiveLoop();
+      if (state.currentScreen !== "approach") {
+        return;
+      }
+
+      approachLiveTimer = setTimeout(async () => {
+        if (state.currentScreen !== "approach") {
+          return;
+        }
+        if (document.hidden) {
+          scheduleApproachLivePoll(APPROACH_POLL_MS);
+          return;
+        }
+
+        await refreshApproachLiveData({ refresh: true });
+        scheduleApproachLivePoll(APPROACH_POLL_MS);
+      }, Math.max(0, Number(delayMs) || 0));
+    }
+
+    function stopResultsLiveLoop() {
+      if (resultsLiveTimer) {
+        clearTimeout(resultsLiveTimer);
+        resultsLiveTimer = null;
+      }
+      if (resultsLiveAbortController) {
+        resultsLiveAbortController.abort();
+        resultsLiveAbortController = null;
+      }
+    }
+
+    async function refreshResultsLiveData(options = {}) {
+      if (!Array.isArray(state.lastRuns) || !state.lastRuns.length) {
+        return;
+      }
+
+      const fromName = state.lastSearchFrom || fromInput.value.trim() || "";
+      if (!fromName) {
+        return;
+      }
+
+      const query = buildApproachQuery(fromName, { refresh: Boolean(options.refresh) });
+      if (!query) {
+        return;
+      }
+
+      try {
+        const controller = new AbortController();
+        resultsLiveAbortController = controller;
+        const res = await fetch(`${API_BASE}/stops/approach${query}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          return;
+        }
+
+        const buses = Array.isArray(data.buses) ? data.buses : [];
+        state.lastRuns = state.lastRuns.map((run) => {
+          const matched = findTrackedBus(run, buses) || findApproxTrackedBus(run, buses);
+          if (!matched) {
+            return { ...run, liveStatus: "", liveLocation: "", liveMatchedTime: "" };
+          }
+          return {
+            ...run,
+            liveStatus: String(matched.status || ""),
+            liveLocation: String(matched.location || ""),
+            liveMatchedTime: String(matched.time || ""),
+          };
+        });
+
+        if (state.currentScreen === "results") {
+          renderResultRuns(state.lastRuns, state.lastTransferHints || []);
+        }
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          return;
+        }
+      } finally {
+        if (resultsLiveAbortController) {
+          resultsLiveAbortController = null;
+        }
+      }
+    }
+
+    function scheduleResultsLivePoll(delayMs = RESULTS_POLL_MS) {
+      stopResultsLiveLoop();
+      if (state.currentScreen !== "results") {
+        return;
+      }
+      if (!Array.isArray(state.lastRuns) || !state.lastRuns.length) {
+        return;
+      }
+
+      resultsLiveTimer = setTimeout(async () => {
+        if (state.currentScreen !== "results") {
+          return;
+        }
+        if (document.hidden) {
+          scheduleResultsLivePoll(RESULTS_POLL_MS);
+          return;
+        }
+
+        await refreshResultsLiveData({ refresh: true });
+        scheduleResultsLivePoll(RESULTS_POLL_MS);
+      }, Math.max(0, Number(delayMs) || 0));
+    }
+
+    function showScreen(screenName) {
+      state.currentScreen = screenName;
+      screens.forEach((el) => el.classList.toggle("active", el.dataset.screen === screenName));
+      tabs.forEach((tab) => tab.classList.toggle("active", tab.dataset.target === screenName));
+      menuItems.forEach((item) => item.classList.toggle("active", item.dataset.menuTarget === screenName));
+      title.textContent = titleMap[screenName] || "バスナビおおいた";
+      searchActionBar.classList.toggle("show", screenName === "search");
+
+      if (screenName !== "stop") {
+        stopTrackingLoop();
+      }
+
+      if (screenName === "home") {
+        scheduleHomeLivePoll(0);
+      } else {
+        stopHomeLiveLoop();
+      }
+
+      if (screenName === "results") {
+        scheduleResultsLivePoll(0);
+      } else {
+        stopResultsLiveLoop();
+      }
+
+      if (screenName === "approach") {
+        setApproachCandidateVisibility(!state.approachManualSearchActive);
+        if (!state.approachManualSearchActive) {
+          const stale = Date.now() - state.approachCandidatesLoadedAt > 120000;
+          if (!state.approachCandidatesLoadedAt || stale) {
+            loadApproachCandidates();
+          }
+        }
+        scheduleApproachLivePoll(APPROACH_POLL_MS);
+      } else {
+        stopApproachLiveLoop();
+      }
+
+      if (screenName === "settings") {
+        updateMyBusSettingsUI();
+      }
+    }
+
+    function setMenuOpen(isOpen) {
+      sideMenu.classList.toggle("open", isOpen);
+      sideMenu.setAttribute("aria-hidden", isOpen ? "false" : "true");
+      menuBackdrop.hidden = false;
+      menuBackdrop.classList.toggle("open", isOpen);
+      if (!isOpen) {
+        setTimeout(() => {
+          if (!menuBackdrop.classList.contains("open")) {
+            menuBackdrop.hidden = true;
+          }
+        }, 180);
+      }
+    }
+
+    function showError(message) {
+      if (!message) {
+        searchError.hidden = true;
+        searchError.textContent = "";
+        return;
+      }
+      searchError.hidden = false;
+      searchError.textContent = message;
+    }
+
+    function setSearchLoading(isLoading) {
+      runSearchBtn.disabled = isLoading;
+      runSearchSpinner.hidden = !isLoading;
+      runSearchLabel.textContent = isLoading ? "検索中" : "ルート検索";
+    }
+
+    function showApproachError(message) {
+      if (!message) {
+        approachError.hidden = true;
+        approachError.textContent = "";
+        return;
+      }
+      approachError.hidden = false;
+      approachError.textContent = message;
+    }
+
+    function setApproachLoading(isLoading) {
+      runApproachSearchBtn.disabled = isLoading;
+      runApproachSearchBtn.textContent = isLoading ? "取得中..." : "接近情報を表示";
+    }
+
+    function setApproachCandidateVisibility(showCandidates) {
+      if (approachCandidateCard) {
+        approachCandidateCard.hidden = !showCandidates;
+      }
+    }
+
+    function toApproachClockText(rawText) {
+      const normalized = normalizeClockText(rawText, "");
+      if (normalized) {
+        return normalized;
+      }
+      const raw = String(rawText || "").trim();
+      return /^\d{1,2}:\d{2}$/.test(raw) ? raw.padStart(5, "0") : raw;
+    }
+
+    function pickApproachMainBus(buses) {
+      if (!Array.isArray(buses) || !buses.length) {
+        return null;
+      }
+      const active = filterActiveApproachBuses(buses);
+      return active[0] || null;
+    }
+
+    async function fetchApproachDataByStop(stopName, options = {}) {
+      const params = new URLSearchParams({ stop: stopName });
+      if (options.refresh) {
+        params.set("refresh", "1");
+      }
+      if (options.gpsLimit) {
+        params.set("gpsLimit", String(options.gpsLimit));
+      }
+      const res = await fetch(`${API_BASE}/stops/approach?${params.toString()}`, {
+        cache: "no-store",
+        signal: options.signal,
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || "接近情報の取得に失敗しました");
+      }
+      return data;
+    }
+
+    function normalizeApproachRouteLabel(value) {
+      const text = String(value || "").replace(/\s+/g, "").trim();
+      if (!text) {
+        return "";
+      }
+      if (text.includes("大分空港")) {
+        return "大分空港";
+      }
+      return text;
+    }
+
+    function getApproachDirectionItem(bus) {
+      const officialLabel = String(bus?.officialRouteName || "").trim();
+      const destinationLabelForRoute = String(bus?.destination || "").trim();
+      const lineLabelForRoute = String(bus?.line || bus?.busInfo?.line || "").trim();
+      const routeSource = officialLabel || destinationLabelForRoute || String(bus?.busInfo?.destination || bus?.busInfo?.via || "").trim() || (lineLabelForRoute ? `${lineLabelForRoute}系統` : "");
+      const officialRouteLabel = normalizeApproachRouteLabel(routeSource);
+      if (officialRouteLabel) {
+        const normalizedRoute = normalizeDestination(officialRouteLabel) || officialRouteLabel.toLowerCase();
+        return {
+          key: `official:${normalizedRoute}`,
+          label: officialRouteLabel,
+        };
+      }
+
+      const directionKey = String(bus?.approachDirectionKey || "").trim();
+      const directionLabel = String(bus?.approachDirectionLabel || "").trim();
+      if (directionKey && directionLabel) {
+        return {
+          key: `route:${directionKey}`,
+          label: directionLabel,
+        };
+      }
+
+      const destinationLabel = String(bus?.destination || "").trim();
+      const stationSid = String(bus?.busInfo?.stationSid || "").trim();
+      if (stationSid) {
+        const base = destinationLabel || "行き先未設定";
+        return {
+          key: `sid:${stationSid}`,
+          label: base,
+        };
+      }
+
+      const label = destinationLabel || "行き先不明";
+      const normalized = normalizeDestination(label) || label.toLowerCase();
+      return {
+        key: `dest:${normalized}`,
+        label,
+      };
+    }
+
+    function renderApproachDirectionFilters(directionItems, stopName, buses, directionOptions = []) {
+      if (!approachDirectionFilterRow || !approachDirectionFilterList) {
+        return;
+      }
+
+      if (!Array.isArray(directionItems) || !directionItems.length) {
+        approachDirectionFilterRow.hidden = true;
+        approachDirectionFilterList.innerHTML = "";
+        return;
+      }
+
+      approachDirectionFilterRow.hidden = false;
+      const selected = state.approachDirectionFilter || "__all__";
+      const allClass = selected === "__all__" ? " active" : "";
+      const allButton = `<button class="chip${allClass}" type="button" data-approach-direction="__all__">すべて</button>`;
+      const dirButtons = directionItems.map((item) => {
+        const activeClass = item.key === selected ? " active" : "";
+        return `<button class="chip${activeClass}" type="button" data-approach-direction="${item.key}">${item.label}</button>`;
+      }).join("");
+      approachDirectionFilterList.innerHTML = allButton + dirButtons;
+
+      approachDirectionFilterList.querySelectorAll("[data-approach-direction]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const nextFilter = String(btn.dataset.approachDirection || "__all__");
+          if (state.approachDirectionFilter === nextFilter) {
+            return;
+          }
+          state.approachDirectionFilter = nextFilter;
+          renderApproachResults(stopName, buses, { keepFilter: true, directionOptions });
+        });
+      });
+    }
+
+    function renderApproachResults(stopName, buses, options = {}) {
+      const keepFilter = Boolean(options.keepFilter);
+      const scheduledDirectionItems = Array.isArray(options.directionOptions) ? options.directionOptions : [];
+      const previousStop = state.approachSelectedStop || "";
+      if (!keepFilter && normalizeStopKey(previousStop) !== normalizeStopKey(stopName || "")) {
+        state.approachDirectionFilter = "__all__";
+      }
+      state.approachSelectedStop = stopName || "";
+      approachResultLabel.textContent = stopName ? `${stopName} の接近便一覧` : "接近便一覧";
+      applyApproachToFromBtn.hidden = !stopName;
+
+      const activeBuses = filterActiveApproachBuses(buses);
+
+      const directionItems = [];
+      const directionSeen = new Set();
+      scheduledDirectionItems.forEach((item) => {
+        const key = String(item?.key || "").trim();
+        const label = String(item?.label || "").trim();
+        if (!key || !label || directionSeen.has(key)) {
+          return;
+        }
+        directionSeen.add(key);
+        directionItems.push(item);
+      });
+      activeBuses.forEach((bus) => {
+        const item = getApproachDirectionItem(bus);
+        if (!item.key || directionSeen.has(item.key)) {
+          return;
+        }
+        directionSeen.add(item.key);
+        directionItems.push(item);
+      });
+      directionItems.sort((a, b) => {
+        return a.label.localeCompare(b.label, "ja");
+      });
+
+      if (state.approachDirectionFilter !== "__all__" && !directionSeen.has(state.approachDirectionFilter)) {
+        state.approachDirectionFilter = "__all__";
+      }
+      renderApproachDirectionFilters(directionItems, stopName, buses, scheduledDirectionItems);
+
+      const filteredBuses = state.approachDirectionFilter === "__all__"
+        ? activeBuses
+        : activeBuses.filter((bus) => getApproachDirectionItem(bus).key === state.approachDirectionFilter);
+
+      if (!filteredBuses.length) {
+        state.approachRenderedBuses = [];
+        const selectedOption = scheduledDirectionItems.find((item) => item.key === state.approachDirectionFilter);
+        if (selectedOption && state.approachDirectionFilter !== "__all__") {
+          const nextTime = String(selectedOption.nextTime || "").trim();
+          const nextLabel = selectedOption.nextIsFirst ? "本日の始発便" : "次の時刻表便";
+          approachResultList.innerHTML = `
+            <div class="approach-result-card">
+              <div class="row"><strong>${nextTime || "--:--"}</strong><span class="chip">時刻表</span></div>
+              <div class="chips"><span class="chip">${selectedOption.label || "方面未設定"}</span></div>
+              <p class="sub" style="margin:0;">現在この方面の接近中の便はありません</p>
+              <p class="sub" style="margin:0;">${nextLabel}を表示しています</p>
+            </div>
+          `;
+          return;
+        }
+        const emptyText = state.approachDirectionFilter === "__all__"
+          ? "接近中の便はありません"
+          : "選択した方面の接近便はありません";
+        approachResultList.innerHTML = `<p class="approach-empty">${emptyText}</p>`;
+        return;
+      }
+
+      state.approachRenderedBuses = filteredBuses.slice(0, 10);
+      approachResultList.innerHTML = state.approachRenderedBuses.map((bus, index) => {
+        const timeText = toApproachClockText(bus.time) || "--:--";
+        const delayText = formatDelayStatus(bus.status, bus.time);
+        const expectedClock = calcExpectedArrivalClock(timeText, delayText);
+        const remainText = calcRemainLabel(expectedClock || timeText);
+        const directionLabel = String(bus.approachDirectionLabel || "").trim();
+        const terminalLabel = String(bus.terminalStop || "").trim();
+        const locationText = isLocationUnavailableNotice(bus.location)
+          ? "位置情報が配信されていません"
+          : (bus.location || "走行中");
+        const hasTimeline = (Array.isArray(bus.routeStops) && bus.routeStops.length)
+          || (Array.isArray(bus.passageStops) && bus.passageStops.length)
+          || hasBusLocationParams(bus);
+        const locationHtml = hasTimeline
+          ? `<button class="bus-location-link" type="button" data-approach-bus-index="${index}">${locationText}</button>`
+          : `<button class="bus-location-link" type="button" disabled>${locationText}</button>`;
+        const statusClass = isDelayDangerLabel(delayText) ? "danger" : "";
+        const delayArrivalText = delayText === "定刻" || !/^\d{2}:\d{2}$/.test(expectedClock)
+          ? ""
+          : `<p class="approach-delay-arrival">遅延見込み到着 ${expectedClock}</p>`;
+        return `
+          <div class="approach-result-card">
+            <div class="row"><strong>${timeText}</strong><span class="chip">${remainText}</span></div>
+            <div class="chips"><span class="chip">${bus.line || "--"}</span><span class="chip">${bus.destination || "行き先不明"}</span></div>
+            <p class="sub" style="margin:0;">現在地: ${locationHtml}</p>
+            <p class="sub ${statusClass}" style="margin:0;">運行: ${delayText}</p>
+            ${delayArrivalText}
+          </div>
+        `;
+      }).join("");
+
+      approachResultList.querySelectorAll("[data-approach-bus-index]").forEach((btn) => {
+        const busForButton = state.approachRenderedBuses[Number(btn.dataset.approachBusIndex)];
+        btn.addEventListener("click", async () => {
+          await openBusTimeline(busForButton);
+        });
+      });
+    }
+
+    async function runApproachSearch(stopNameOverride = "", options = {}) {
+      const rawName = String(stopNameOverride || approachStopInput.value || "").trim();
+      if (!rawName) {
+        showApproachError("バス停名を入力してください");
+        return;
+      }
+
+      const manualTrigger = Boolean(options.manualTrigger);
+      const fromCandidate = Boolean(options.fromCandidate);
+      if (manualTrigger) {
+        state.approachManualSearchActive = true;
+      } else if (fromCandidate) {
+        state.approachManualSearchActive = false;
+      }
+      setApproachCandidateVisibility(!state.approachManualSearchActive);
+
+      showApproachError("");
+      setApproachLoading(true);
+      try {
+        const stopName = await normalizeStopName(rawName);
+        approachStopInput.value = stopName;
+        const data = await fetchApproachDataByStop(stopName, { refresh: true, gpsLimit: 10 });
+        const resolvedStop = data.stop || stopName;
+        approachLeadSub.textContent = `${resolvedStop} の接近便を表示中です`;
+        if (options.preferredDirectionKey) {
+          state.approachDirectionFilter = String(options.preferredDirectionKey);
+          renderApproachResults(resolvedStop, data.buses || [], { keepFilter: true, directionOptions: data.directionOptions || [] });
+        } else {
+          renderApproachResults(resolvedStop, data.buses || [], { directionOptions: data.directionOptions || [] });
+        }
+        if (state.currentScreen === "approach") {
+          scheduleApproachLivePoll(APPROACH_POLL_MS);
+        }
+      } catch (error) {
+        renderApproachResults("", []);
+        approachLeadSub.textContent = "候補カードを選ぶか、入力してバス停を検索できます";
+        showApproachError(error?.message || "接近情報の取得に失敗しました");
+      } finally {
+        setApproachLoading(false);
+      }
+    }
+
+    function getTimelineStopNote(stop) {
+      if (stop?.position === "current") {
+        return "現在地";
+      }
+      if (stop?.position === "next") {
+        return "次に停車";
+      }
+      if (stop?.position === "target") {
+        return "検索停留所";
+      }
+      if (stop?.position === "terminal") {
+        return "終点";
+      }
+      if (stop?.passed) {
+        return "通過済み";
+      }
+      return "";
+    }
+
+    function getTimelineBaseStops(bus) {
+      const routeStops = Array.isArray(bus?.routeStops) ? bus.routeStops : [];
+      const passageStops = Array.isArray(bus?.passageStops) ? bus.passageStops : [];
+      const source = routeStops.length ? routeStops : passageStops;
+      return source.map((stop) => ({
+        name: String(stop?.name || "").trim(),
+        time: String(stop?.time || "").trim(),
+        passed: Boolean(stop?.passed),
+        position: String(stop?.position || ""),
+      })).filter((stop) => stop.name);
+    }
+
+    function findTimelineStopIndex(stops, names) {
+      const keys = names.map((name) => normalizeStopKey(name)).filter(Boolean);
+      if (!keys.length) {
+        return -1;
+      }
+      return stops.findIndex((stop) => {
+        const key = normalizeStopKey(stop?.name || "");
+        return keys.some((target) => key === target || key.includes(target) || target.includes(key));
+      });
+    }
+
+    function buildDisplayTimelineStops(bus) {
+      const stops = getTimelineBaseStops(bus);
+      if (!stops.length) {
+        return [];
+      }
+
+      const passageStops = Array.isArray(bus?.passageStops) ? bus.passageStops : [];
+      let currentIndex = findTimelineStopIndex(stops, [
+        bus?.currentStopName,
+        bus?.location,
+      ]);
+      let nextIndex = findTimelineStopIndex(stops, [bus?.nextStopName]);
+      if (currentIndex < 0) {
+        const passageCurrent = passageStops.find((stop) => stop?.position === "current");
+        currentIndex = findTimelineStopIndex(stops, [passageCurrent?.name]);
+      }
+      if (nextIndex < 0) {
+        const passageNext = passageStops.find((stop) => stop?.position === "next");
+        nextIndex = findTimelineStopIndex(stops, [passageNext?.name]);
+      }
+
+      let targetIndex = Number.isInteger(bus?.targetStopIndex) ? Number(bus.targetStopIndex) : -1;
+      if (targetIndex < 0) {
+        targetIndex = findTimelineStopIndex(stops, [state.approachSelectedStop, approachStopInput.value]);
+      }
+
+      const terminalIndex = stops.length - 1;
+      return stops.map((stop, index) => {
+        let position = stop.position || "";
+        const passed = currentIndex >= 0 && index < currentIndex;
+        if (index === currentIndex) {
+          position = "current";
+        } else if (index === nextIndex) {
+          position = "next";
+        } else if (index === targetIndex) {
+          position = "target";
+        } else if (index === terminalIndex) {
+          position = "terminal";
+        } else if (passed) {
+          position = "passed";
+        }
+        return {
+          ...stop,
+          passed,
+          position,
+        };
+      });
+    }
+
+    function getTimelineTargetClock(bus, stops) {
+      const targetStop = stops.find((stop) => stop?.position === "target")
+        || stops.find((stop) => stop?.position === "next")
+        || stops.find((stop) => stop?.position === "current");
+      return normalizeClockText(targetStop?.time, "") || normalizeClockText(bus?.time, "");
+    }
+
+    function getTimelineDelayArrivalText(bus, stops) {
+      const delayText = formatDelayStatus(bus?.status, bus?.time);
+      if (delayText === "定刻") {
+        return "";
+      }
+      const targetClock = getTimelineTargetClock(bus, stops);
+      const expectedClock = calcExpectedArrivalClock(targetClock, delayText);
+      if (!/^\d{2}:\d{2}$/.test(expectedClock)) {
+        return "";
+      }
+      return `遅延見込み到着 ${expectedClock}`;
+    }
+
+    function hasBusLocationParams(bus) {
+      const info = bus?.busInfo || {};
+      return Boolean(info.courseSid && info.companyId && info.busId);
+    }
+
+    async function fetchBusTimeline(bus) {
+      if (!hasBusLocationParams(bus)) {
+        return [];
+      }
+
+      const info = bus.busInfo || {};
+      const params = new URLSearchParams({
+        courseSid: info.courseSid || "",
+        companyId: info.companyId || "",
+        busId: info.busId || "",
+      });
+      if (info.keiyuCd) {
+        params.set("keiyuCd", info.keiyuCd);
+      }
+      if (info.daiyaSid) {
+        params.set("daiyaSid", info.daiyaSid);
+      }
+
+      const res = await fetch(`${API_BASE}/bus/location?${params.toString()}`, { cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        return [];
+      }
+
+      const parsed = data.parsed || {};
+      bus.currentStopName = parsed.currentStopName || bus.currentStopName || "";
+      bus.nextStopName = parsed.nextStopName || bus.nextStopName || "";
+      bus.passageStops = Array.isArray(parsed.passageStops) ? parsed.passageStops : [];
+      return buildDisplayTimelineStops(bus);
+    }
+
+    function setBusTimelineOpen(isOpen) {
+      if (!busTimelineBackdrop || !busTimelineSheet) {
+        return;
+      }
+      busTimelineBackdrop.hidden = false;
+      busTimelineBackdrop.classList.toggle("open", isOpen);
+      busTimelineSheet.classList.toggle("open", isOpen);
+      busTimelineSheet.setAttribute("aria-hidden", isOpen ? "false" : "true");
+      if (!isOpen) {
+        setTimeout(() => {
+          if (!busTimelineBackdrop.classList.contains("open")) {
+            busTimelineBackdrop.hidden = true;
+          }
+        }, 180);
+      }
+    }
+
+    async function openBusTimeline(bus) {
+      if (!bus) {
+        return;
+      }
+      busTimelineSheet?.querySelectorAll(".timeline-delay-arrival").forEach((el) => el.remove());
+      let stops = buildDisplayTimelineStops(bus);
+      if (!stops.length) {
+        if (busTimelineTitle) {
+          busTimelineTitle.textContent = `${bus?.line || "--"}系統 ${bus?.destination || "行き先不明"}`;
+        }
+        if (busTimelineSub) {
+          busTimelineSub.textContent = "停車順を取得しています...";
+        }
+        if (busTimelineList) {
+          busTimelineList.innerHTML = '<p class="sub" style="margin:0;">読み込み中...</p>';
+        }
+        setBusTimelineOpen(true);
+        stops = await fetchBusTimeline(bus);
+      }
+      if (!stops.length || !busTimelineList) {
+        if (busTimelineSub) {
+          busTimelineSub.textContent = "停車順を取得できませんでした。";
+        }
+        if (busTimelineList) {
+          busTimelineList.innerHTML = '<p class="sub" style="margin:0;">この便の停車一覧は表示できません。</p>';
+        }
+        return;
+      }
+
+      const currentName = String(bus?.currentStopName || bus?.location || "").trim();
+      const nextName = String(bus?.nextStopName || "").trim();
+      if (busTimelineTitle) {
+        busTimelineTitle.textContent = `${bus?.line || "--"}系統 ${bus?.destination || "行き先不明"}`;
+      }
+      if (busTimelineSub) {
+        busTimelineSub.textContent = currentName
+          ? `現在地: ${currentName}${nextName ? ` / 次: ${nextName}` : ""}`
+          : "停車順の中で現在位置を確認できます。";
+      }
+      const delayArrivalText = getTimelineDelayArrivalText(bus, stops);
+      const delayEl = delayArrivalText ? `<p class="timeline-delay-arrival">${delayArrivalText}</p>` : "";
+      if (busTimelineSub) {
+        busTimelineSub.insertAdjacentHTML("afterend", delayEl);
+      }
+
+      busTimelineList.innerHTML = stops.map((stop) => {
+        const position = String(stop?.position || "");
+        const className = ["timeline-stop", position].filter(Boolean).join(" ");
+        const note = getTimelineStopNote(stop);
+        const time = normalizeClockText(stop?.time, "") || "";
+        return `
+          <div class="${className}">
+            <span class="timeline-time">${time || "--:--"}</span>
+            <span class="timeline-dot"></span>
+            <div>
+              <p class="timeline-name">${stop?.name || "停留所名不明"}</p>
+              ${note ? `<p class="timeline-note">${note}</p>` : ""}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      setBusTimelineOpen(true);
+      const targetEl = busTimelineList.querySelector(".timeline-stop.target");
+      const currentEl = busTimelineList.querySelector(".timeline-stop.current") || busTimelineList.querySelector(".timeline-stop.next");
+      const focusEl = targetEl || currentEl;
+      if (focusEl) {
+        setTimeout(() => focusEl.scrollIntoView({ block: "center" }), 80);
+      }
+    }
+
+    async function collectApproachQuickStops() {
+      const names = [];
+      const seen = new Set();
+      const pushName = (value) => {
+        const name = String(value || "").trim();
+        if (!name || seen.has(name)) {
+          return;
+        }
+        seen.add(name);
+        names.push(name);
+      };
+
+      try {
+        const nearby = await fetchNearbyStops();
+        (nearby.items || []).slice(0, 4).forEach((item) => pushName(item.name));
+      } catch (_) {
+        // Use other sources if nearby lookup fails.
+      }
+
+      getSearchHistory().slice(0, 6).forEach((h) => {
+        pushName(h.from);
+        pushName(h.to);
+      });
+
+      if (!names.length) {
+        const stationHints = await fetchStopSuggestions("駅");
+        stationHints.slice(0, 6).forEach((item) => pushName(item.name));
+      }
+
+      return names.slice(0, 6);
+    }
+
+    function renderApproachCandidateCards(candidates) {
+      if (!Array.isArray(candidates) || !candidates.length) {
+        approachCandidateList.innerHTML = '<p class="approach-empty">表示できる候補がありません</p>';
+        return;
+      }
+
+      approachCandidateList.innerHTML = candidates.map((entry) => {
+        const stopName = entry.stop || "不明";
+        const bus = entry.bus || {};
+        const clock = toApproachClockText(bus.time) || "--:--";
+        const remain = calcRemainLabel(clock);
+        const delay = formatDelayStatus(bus.status, bus.time);
+        return `
+          <button class="approach-item" type="button" data-approach-stop="${stopName}">
+            <div class="top"><span class="stop">${stopName}</span><span class="meta">${remain}</span></div>
+            <div class="top"><span class="time">${clock}</span><span class="meta">${bus.line || "--"} / ${bus.destination || "行き先不明"}</span></div>
+            <p class="sub" style="margin:0;">運行: ${delay}</p>
+          </button>
+        `;
+      }).join("");
+
+      approachCandidateList.querySelectorAll("[data-approach-stop]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const stopName = (btn.dataset.approachStop || "").trim();
+          if (!stopName) {
+            return;
+          }
+          approachStopInput.value = stopName;
+          await runApproachSearch(stopName, { fromCandidate: true });
+        });
+      });
+    }
+
+    async function loadApproachCandidates(force = false) {
+      if (!force && state.approachCandidatesLoadedAt && (Date.now() - state.approachCandidatesLoadedAt) < 45000) {
+        return;
+      }
+
+      approachCandidateMeta.textContent = "取得中...";
+      approachCandidateList.innerHTML = '<p class="approach-empty">候補を読み込み中...</p>';
+
+      try {
+        const quickStops = await collectApproachQuickStops();
+        if (!quickStops.length) {
+          approachCandidateMeta.textContent = "0件";
+          approachCandidateList.innerHTML = '<p class="approach-empty">候補のバス停が見つかりません。</p>';
+          return;
+        }
+
+        const rows = await Promise.all(quickStops.map(async (stopName) => {
+          try {
+            const data = await fetchApproachDataByStop(stopName);
+            const bus = pickApproachMainBus(data.buses || []);
+            if (!bus) {
+              return null;
+            }
+            return {
+              stop: data.stop || stopName,
+              bus,
+            };
+          } catch (_) {
+            return null;
+          }
+        }));
+
+        const candidates = rows.filter(Boolean);
+        renderApproachCandidateCards(candidates);
+        approachCandidateMeta.textContent = `${candidates.length}件`;
+        state.approachCandidatesLoadedAt = Date.now();
+      } catch (_) {
+        approachCandidateMeta.textContent = "取得失敗";
+        approachCandidateList.innerHTML = '<p class="approach-empty">候補の取得に失敗しました</p>';
+      }
+    }
+
+    async function renderApproachSuggest(query) {
+      const q = String(query || "").trim();
+      if (!q) {
+        approachSuggest.hidden = true;
+        approachSuggest.innerHTML = "";
+        return;
+      }
+
+      const items = await fetchStopSuggestions(q);
+      if (!items.length) {
+        approachSuggest.hidden = true;
+        approachSuggest.innerHTML = "";
+        return;
+      }
+
+      approachSuggest.innerHTML = items.map((stop) => `
+        <button class="suggest-item" type="button" data-approach-stop="${stop.name}">
+          <span class="suggest-main">${stop.name}</span>
+          <span class="suggest-sub">${stop.area || "バス停"}</span>
+        </button>
+      `).join("");
+      approachSuggest.hidden = false;
+
+      approachSuggest.querySelectorAll("[data-approach-stop]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const stopName = (btn.dataset.approachStop || "").trim();
+          if (!stopName) {
+            return;
+          }
+          approachStopInput.value = stopName;
+          approachSuggest.hidden = true;
+          await runApproachSearch(stopName, { manualTrigger: true });
+        });
+      });
+    }
+
+    function bindApproachSuggest() {
+      approachStopInput.addEventListener("focus", () => {
+        renderApproachSuggest(approachStopInput.value);
+      });
+
+      approachStopInput.addEventListener("input", () => {
+        showApproachError("");
+        if (!String(approachStopInput.value || "").trim()) {
+          state.approachManualSearchActive = false;
+          setApproachCandidateVisibility(true);
+          loadApproachCandidates();
+        }
+        renderApproachSuggest(approachStopInput.value);
+      });
+
+      approachStopInput.addEventListener("keydown", async (event) => {
+        if (event.key !== "Enter") {
+          return;
+        }
+        event.preventDefault();
+        approachSuggest.hidden = true;
+        await runApproachSearch("", { manualTrigger: true });
+      });
+
+      approachStopInput.addEventListener("blur", () => {
+        setTimeout(() => {
+          approachSuggest.hidden = true;
+        }, 120);
+      });
+    }
+
+    function getSearchHistory() {
+      try {
+        const text = localStorage.getItem("busnaviSearchHistory") || "[]";
+        const items = JSON.parse(text);
+        return Array.isArray(items) ? items : [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    function saveSearchHistory(from, to) {
+      const fromName = (from || "").trim();
+      const toName = (to || "").trim();
+      if (!fromName || !toName) {
+        return;
+      }
+      const current = getSearchHistory();
+      const next = [{ from: fromName, to: toName, ts: Date.now() }]
+        .concat(current.filter((x) => !(x.from === fromName && x.to === toName)))
+        .slice(0, 6);
+      localStorage.setItem("busnaviSearchHistory", JSON.stringify(next));
+    }
+
+    function renderHistoryContainers() {
+      const history = getSearchHistory();
+
+      if (!history.length) {
+        homeRecentRoutes.innerHTML = '<p class="sub">検索履歴がありません</p>';
+        searchRecentGrid.innerHTML = '<p class="sub">まだ検索履歴がありません</p>';
+        return;
+      }
+
+      homeRecentRoutes.innerHTML = history.slice(0, 3).map((h) => `
+        <button class="list-item recent-route-item" data-history-from="${h.from}" data-history-to="${h.to}">
+          <div class="row">
+            <strong>${h.from} -> ${h.to}</strong>
+            <span class="chip">履歴</span>
+          </div>
+        </button>
+      `).join("");
+
+      searchRecentGrid.innerHTML = history.map((h, idx) => {
+        if (idx === 0) {
+          return `
+            <button class="recent-wide" data-history-from="${h.from}" data-history-to="${h.to}">
+              <div>
+                <strong>${h.from} -> ${h.to}</strong>
+                <p class="sub" style="margin:4px 0 0;">直近の検索</p>
+              </div>
+              <span class="muted">></span>
+            </button>
+          `;
+        }
+        return `
+          <button class="recent-mini" data-history-from="${h.from}" data-history-to="${h.to}">
+            <strong>${h.from}</strong>
+            <p class="sub" style="margin:0;">-> ${h.to}</p>
+          </button>
+        `;
+      }).join("");
+
+      document.querySelectorAll("[data-history-from][data-history-to]").forEach((item) => {
+        item.addEventListener("click", () => {
+          fromInput.value = item.dataset.historyFrom;
+          toInput.value = item.dataset.historyTo;
+          stopSelectState.fromConfirmed = false;
+          stopSelectState.toConfirmed = false;
+          showScreen("search");
+        });
+      });
+    }
+
+    function renderHomeThreadStatus(stopName, bus, note = "") {
+      const stopLabel = stopName ? `表示中: ${stopName}` : "表示対象なし";
+      const stopMeta = note || (stopName ? "接近情報を更新しました" : "現在地またはマイバスを設定してください");
+
+      if (homeThreadStop) {
+        homeThreadStop.textContent = stopLabel;
+      }
+      if (homeThreadStopMeta) {
+        homeThreadStopMeta.textContent = stopMeta;
+      }
+
+      if (!bus) {
+        if (homeThreadRoute) {
+          homeThreadRoute.textContent = "次便情報なし";
+        }
+        if (homeThreadRouteMeta) {
+          homeThreadRouteMeta.textContent = "接近データを取得できませんでした";
+        }
+        if (homeThreadEta) {
+          homeThreadEta.textContent = "到着予定 --:--";
+        }
+        if (homeThreadEtaMeta) {
+          homeThreadEtaMeta.textContent = "再取得で更新できます";
+        }
+        return;
+      }
+
+      const departureClock = normalizeClockText(bus.time, "");
+      const delayLabel = formatDelayStatus(bus.status, bus.time);
+      const expectedClock = calcExpectedArrivalClock(departureClock, delayLabel);
+
+      if (homeThreadRoute) {
+        homeThreadRoute.textContent = `${bus.line || "--"}系統 ${departureClock || "--:--"}`;
+      }
+      if (homeThreadRouteMeta) {
+        homeThreadRouteMeta.textContent = `行き先 ${bus.destination || "未取得"}`;
+      }
+      if (homeThreadEta) {
+        homeThreadEta.textContent = /^\d{2}:\d{2}$/.test(expectedClock) ? `到着予定 ${expectedClock}` : "到着予定 --:--";
+      }
+      if (homeThreadEtaMeta) {
+        homeThreadEtaMeta.textContent = delayLabel === "定刻" ? "定刻見込み" : `${delayLabel}を反映`;
+      }
+    }
+
+    function renderHomeLive(stopName, buses) {
+      homeCurrentStop.textContent = stopName || "取得失敗";
+      homeCurrentSub.textContent = stopName ? "最寄りバス停の接近情報" : "接近情報の取得に失敗しました";
+
+      const activeBuses = filterActiveApproachBuses(buses);
+
+      if (!activeBuses.length) {
+        homeNextLine.textContent = "-- 系統";
+        homeNextDest.textContent = stopName ? "行き先: 接近中の便はありません" : "行き先: 取得できませんでした";
+        homeNextTime.textContent = "--:--";
+        homeNextRemain.textContent = "--";
+        homeNextRemain.dataset.mode = "text";
+        homeNextStatus.textContent = "--:--";
+        homeNextStatus.dataset.empty = "1";
+        renderHomeThreadStatus(stopName, null, stopName ? "通過済み便を除外したため表示できる接近便がありません" : "接近データを取得できませんでした");
+        state.homeRuns = [];
+        return;
+      }
+
+      state.homeRuns = activeBuses.map((b) => ({
+        time: b.time,
+        line: b.line,
+        destination: b.destination,
+        arrivalTime: "",
+        arrivalIsEstimate: false,
+        stops: []
+      }));
+
+      const first = activeBuses[0];
+      const departureClock = normalizeClockText(first.time, "");
+      const delayLabel = formatDelayStatus(first.status, first.time);
+      const expectedClock = calcExpectedArrivalClock(departureClock, delayLabel);
+      const remainLabel = calcRemainLabel(expectedClock || departureClock);
+
+      homeNextLine.textContent = `${first.line || "--"} 系統`;
+      homeNextDest.textContent = `行き先: ${first.destination || "--"}`;
+      homeNextTime.textContent = departureClock || "--:--";
+      homeNextRemain.textContent = remainLabel;
+      homeNextRemain.dataset.mode = /^あと\d+分$/.test(remainLabel) ? "numeric" : "text";
+
+      if (/^\d{2}:\d{2}$/.test(expectedClock)) {
+        homeNextStatus.textContent = expectedClock;
+        homeNextStatus.dataset.empty = "0";
+      } else {
+        homeNextStatus.textContent = "--:--";
+        homeNextStatus.dataset.empty = "1";
+      }
+
+      renderHomeThreadStatus(stopName, first);
+    }
+
+    function getCurrentPositionPromise(options) {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error("Geolocation not supported"));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(resolve, reject, options);
+      });
+    }
+
+    function isLocalHostName(hostname) {
+      return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+    }
+
+    function getLocationFailureMessage(error) {
+      if (!error) {
+        return "位置情報を許可すると最寄りバス停を表示できます";
+      }
+
+      if (error.type === "insecure-context") {
+        return "現在地取得は HTTPS または localhost でのみ利用できます";
+      }
+
+      if (error.message === "Geolocation not supported") {
+        return "このブラウザは位置情報取得に対応していません";
+      }
+
+      if (error.code === 1) {
+        return "位置情報の利用が拒否されています。ブラウザで許可してください";
+      }
+
+      if (error.code === 2) {
+        return "現在地を特定できませんでした。通信状況を確認して再試行してください";
+      }
+
+      if (error.code === 3) {
+        return "現在地の取得がタイムアウトしました。再取得してください";
+      }
+
+      return "位置情報を取得できませんでした。再取得してください";
+    }
+
+    function setHomeLocationLoading(isLoading) {
+      homeRefreshLocationBtn.disabled = isLoading;
+      homeRefreshLocationBtn.textContent = isLoading ? "現在地を取得中..." : "現在地を再取得";
+    }
+
+    async function getCurrentCoords() {
+      const now = Date.now();
+      if (state.currentCoords && (now - state.currentCoordsAt) < 60000) {
+        state.lastLocationError = null;
+        return state.currentCoords;
+      }
+
+      if (!window.isSecureContext && !isLocalHostName(window.location.hostname)) {
+        state.lastLocationError = { type: "insecure-context" };
+        return null;
+      }
+
+      try {
+        const pos = await getCurrentPositionPromise({
+          enableHighAccuracy: true,
+          timeout: 7000,
+          maximumAge: 60000,
+        });
+        const coords = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+        };
+        state.currentCoords = coords;
+        state.currentCoordsAt = now;
+        state.lastLocationError = null;
+        return coords;
+      } catch (error) {
+        state.lastLocationError = error;
+        return null;
+      }
+    }
+
+    async function fetchNearbyStops(options = {}) {
+      const strict = Boolean(options.strict);
+      const coords = await getCurrentCoords();
+      const params = [];
+      if (coords) {
+        params.push(`lat=${encodeURIComponent(coords.lat)}`);
+        params.push(`lng=${encodeURIComponent(coords.lng)}`);
+      }
+      if (strict) {
+        params.push("strict=1");
+      }
+      const query = params.length ? `?${params.join("&")}` : "";
+      const res = await fetch(`${API_BASE}/stops/nearby${query}`);
+      const data = await res.json();
+      return {
+        items: data.items || [],
+        coords,
+      };
+    }
+
+    async function loadHomeLiveData(options = {}) {
+      const silent = Boolean(options.silent);
+      if (!silent) {
+        setHomeLocationLoading(true);
+      }
+      try {
+        const nearbyData = await fetchNearbyStops({ strict: true });
+        const stop = (nearbyData.items || [])[0];
+        if (!stop || !stop.name) {
+          if (await loadMyBusHomeData(getLocationFailureMessage(state.lastLocationError))) {
+            return;
+          }
+          renderHomeLive("", []);
+          homeCurrentStop.textContent = "位置情報未取得";
+          homeCurrentSub.textContent = getLocationFailureMessage(state.lastLocationError);
+          renderHomeThreadStatus("", null, homeCurrentSub.textContent);
+          return;
+        }
+
+        const appData = await fetchApproachDataByStop(stop.name, { refresh: true, gpsLimit: 8 });
+        renderHomeLive(appData.stop || stop.name, appData.buses || []);
+      } catch (_) {
+        if (await loadMyBusHomeData(getLocationFailureMessage(state.lastLocationError))) {
+          return;
+        }
+        renderHomeLive("", []);
+        homeCurrentStop.textContent = "位置情報未取得";
+          homeCurrentSub.textContent = getLocationFailureMessage(state.lastLocationError);
+        renderHomeThreadStatus("", null, homeCurrentSub.textContent);
+      } finally {
+        if (!silent) {
+          setHomeLocationLoading(false);
+        }
+      }
+    }
+
+    function calcRemainLabel(hhmm) {
+      if (!hhmm || !/^\d{2}:\d{2}$/.test(hhmm)) {
+        return "--";
+      }
+      const [h, m] = hhmm.split(":").map((v) => Number(v));
+      const now = new Date();
+      const current = now.getHours() * 60 + now.getMinutes();
+      let target = h * 60 + m;
+      if (target < current - 720) {
+        target += 24 * 60;
+      }
+      const diff = target - current;
+      if (diff <= 0) {
+        return "まもなく";
+      }
+      return `あと${diff}分`;
+    }
+
+    function toHalfWidthDigits(text) {
+      return String(text || "").replace(/[０-９]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) - 0xFEE0));
+    }
+
+    function formatDelayStatus(rawStatus, scheduledTimeText) {
+      const raw = String(rawStatus || "").trim();
+      if (!raw) {
+        return "定刻";
+      }
+
+      const normalized = toHalfWidthDigits(raw);
+      const delayMatch = normalized.match(/(\d+)\s*分\s*(?:遅れ|延着|遅延)/);
+      if (delayMatch) {
+        return `${Number(delayMatch[1])}分遅れ`;
+      }
+
+      const remainMatch = normalized.match(/^(\d+)\s*分?$/);
+      if (remainMatch) {
+        const remainMin = Number(remainMatch[1]);
+        if (remainMin <= 0) {
+          return "まもなく到着";
+        }
+
+        if (scheduledTimeText) {
+          const now = new Date();
+          const scheduled = new Date();
+          const [sh, sm] = scheduledTimeText.split(":").map(Number);
+          if (!isNaN(sh) && !isNaN(sm)) {
+            scheduled.setHours(sh, sm, 0, 0);
+            if (sh < 4 && now.getHours() >= 18) {
+              scheduled.setDate(scheduled.getDate() + 1);
+            }
+
+            const expected = new Date(now.getTime() + remainMin * 60000);
+            const delayMinutes = Math.round((expected.getTime() - scheduled.getTime()) / 60000);
+            if (delayMinutes > 0) {
+              return `${delayMinutes}分遅れ`;
+            }
+          }
+        }
+        return "定刻";
+      }
+
+      if (/定刻|定刻予定/.test(normalized)) {
+        return "定刻";
+      }
+
+      return normalized;
+    }
+
+    function extractDelayMinutes(rawStatus) {
+      const raw = String(rawStatus || "").trim();
+      if (!raw) {
+        return 0;
+      }
+
+      const normalized = toHalfWidthDigits(raw);
+      const match = normalized.match(/(\d+)\s*分\s*(?:遅れ|延着|遅延)/);
+      if (!match) {
+        return 0;
+      }
+
+      const minutes = Number(match[1]);
+      return Number.isFinite(minutes) ? Math.max(0, minutes) : 0;
+    }
+
+    function calcExpectedArrivalClock(baseClock, rawStatus) {
+      const normalizedClock = normalizeClockText(baseClock, "");
+      if (!normalizedClock) {
+        return "";
+      }
+
+      const delayMinutes = extractDelayMinutes(rawStatus);
+      return addMinutesToClock(normalizedClock, delayMinutes);
+    }
+
+    function getApproachExpectedClock(bus) {
+      const scheduledClock = normalizeClockText(bus?.time, "");
+      if (!scheduledClock) {
+        return "";
+      }
+      const delayLabel = formatDelayStatus(bus?.status, scheduledClock);
+      return calcExpectedArrivalClock(scheduledClock, delayLabel) || scheduledClock;
+    }
+
+    function isDelayDangerLabel(label) {
+      return /(遅れ|遅延|延着)/.test(label) && !/(定刻|定時)/.test(label);
+    }
+
+    function normalizeClockText(raw, fallbackDeparture) {
+      const text = String(raw || "").trim();
+      if (!text) {
+        return "";
+      }
+      if (/^\d{2}:\d{2}$/.test(text)) {
+        return text;
+      }
+      if (/^\d{1,2}$/.test(text) && /^\d{2}:\d{2}$/.test(String(fallbackDeparture || ""))) {
+        const [h, depM] = String(fallbackDeparture).split(":").map((v) => Number(v));
+        let hour = h;
+        const minute = Number(text);
+        if (minute < depM) {
+          hour = (hour + 1) % 24;
+        }
+        return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+      }
+      return "";
+    }
+
+    function normalizeLineToken(line) {
+      return String(line || "").replace(/[^0-9A-Za-z]/g, "").toLowerCase();
+    }
+
+    function normalizeDestination(text) {
+      return String(text || "").replace(/[\s\u3000]/g, "").replace(/行き先?|方面/g, "").toLowerCase();
+    }
+
+    function timeToMinutes(hhmm) {
+      if (!/^\d{2}:\d{2}$/.test(String(hhmm || ""))) {
+        return null;
+      }
+      const [h, m] = String(hhmm).split(":").map((v) => Number(v));
+      return h * 60 + m;
+    }
+
+    function addMinutesToClock(hhmm, plusMinutes) {
+      const base = timeToMinutes(hhmm);
+      if (base === null) {
+        return "";
+      }
+      const next = (base + Math.max(0, Number(plusMinutes || 0))) % (24 * 60);
+      return `${String(Math.floor(next / 60)).padStart(2, "0")}:${String(next % 60).padStart(2, "0")}`;
+    }
+
+    function normalizeStopKey(text) {
+      return String(text || "").replace(/[\s\u3000（）()・･]/g, "").toLowerCase();
+    }
+
+    function isPassedBus(bus) {
+      const status = String(bus?.status || "");
+      const location = String(bus?.location || "");
+      return /通過済み|到着済み|終点到着/.test(status) || /通過済み|到着済み|終点到着/.test(location);
+    }
+
+    function clockMinutesFromNow(hhmm) {
+      const targetMinutes = timeToMinutes(hhmm);
+      if (targetMinutes === null) {
+        return null;
+      }
+
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      let diff = targetMinutes - currentMinutes;
+
+      // Keep within half-day window to avoid midnight wrap false positives.
+      if (diff < -720) {
+        diff += 24 * 60;
+      } else if (diff > 720) {
+        diff -= 24 * 60;
+      }
+      return diff;
+    }
+
+    function isDepartedByTime(bus, graceMinutes = 2) {
+      const clockText = getApproachExpectedClock(bus) || normalizeClockText(bus?.time, "");
+      const diff = clockMinutesFromNow(clockText);
+      if (diff === null) {
+        return false;
+      }
+      return diff < -Math.max(0, Number(graceMinutes) || 0);
+    }
+
+    function isActiveApproachBus(bus) {
+      if (!bus) {
+        return false;
+      }
+      return !isPassedBus(bus) && !isDepartedByTime(bus, 2);
+    }
+
+    function filterActiveApproachBuses(buses) {
+      if (!Array.isArray(buses) || !buses.length) {
+        return [];
+      }
+      return buses.filter((bus) => isActiveApproachBus(bus));
+    }
+
+    function isLocationUnavailableNotice(text) {
+      const t = String(text || "");
+      return /位置情報.*(未取得|取得できません|拒否|タイムアウト)|現在地.*(取得できません|特定できません)/.test(t);
+    }
+
+    function makeRunKey(run) {
+      return `${run?.time || ""}|${normalizeLineToken(run?.line)}|${normalizeDestination(run?.destination)}`;
+    }
+
+    function clockDiffMinutes(a, b) {
+      const aMinutes = timeToMinutes(a);
+      const bMinutes = timeToMinutes(b);
+      if (aMinutes === null || bMinutes === null) {
+        return null;
+      }
+      const raw = Math.abs(aMinutes - bMinutes);
+      return Math.min(raw, 24 * 60 - raw);
+    }
+
+    function findTrackedBus(run, buses) {
+      const runLine = normalizeLineToken(run?.line);
+      const runDest = normalizeDestination(run?.destination);
+      const runTime = run?.time || "";
+      if (!Array.isArray(buses) || !buses.length) {
+        return null;
+      }
+
+      const now = new Date();
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      const runMinutes = timeToMinutes(runTime);
+      const expectNotPassed = runMinutes !== null && runMinutes >= (nowMinutes - 2);
+      const isNearRunTime = (busTimeText) => {
+        const diff = clockDiffMinutes(busTimeText, runTime);
+        if (diff === null) {
+          return true;
+        }
+        return diff <= 25;
+      };
+      const isVeryNearRunTime = (busTimeText) => {
+        const diff = clockDiffMinutes(busTimeText, runTime);
+        if (diff === null) {
+          return false;
+        }
+        return diff <= 10;
+      };
+
+      const activeBuses = expectNotPassed ? buses.filter((b) => !isPassedBus(b)) : buses;
+      const source = activeBuses.length ? activeBuses : buses;
+
+      let matched = source.find((b) => {
+        const sameTime = (b.time || "") === runTime;
+        const lineOk = normalizeLineToken(b.line).includes(runLine) || runLine.includes(normalizeLineToken(b.line));
+        const destOk = normalizeDestination(b.destination).includes(runDest) || runDest.includes(normalizeDestination(b.destination));
+        return sameTime && lineOk && destOk;
+      });
+
+      if (!matched) {
+        matched = source.find((b) => {
+          const lineOk = normalizeLineToken(b.line).includes(runLine) || runLine.includes(normalizeLineToken(b.line));
+          const destOk = normalizeDestination(b.destination).includes(runDest) || runDest.includes(normalizeDestination(b.destination));
+          return lineOk && destOk && isNearRunTime(b.time);
+        });
+      }
+
+      if (!matched) {
+        matched = source.find((b) => {
+          const lineOk = normalizeLineToken(b.line).includes(runLine) || runLine.includes(normalizeLineToken(b.line));
+          return lineOk && isVeryNearRunTime(b.time);
+        });
+      }
+
+      return matched || null;
+    }
+
+    function findApproxTrackedBus(run, buses) {
+      const runLine = normalizeLineToken(run?.line);
+      const runDest = normalizeDestination(run?.destination);
+      const runTime = run?.time || "";
+      const runMinutes = timeToMinutes(runTime);
+      if (!Array.isArray(buses) || !buses.length) {
+        return null;
+      }
+
+      const now = new Date();
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      const expectNotPassed = runMinutes !== null && runMinutes >= (nowMinutes - 2);
+      const activeBuses = expectNotPassed ? buses.filter((b) => !isPassedBus(b)) : buses;
+      const source = activeBuses.length ? activeBuses : buses;
+
+      let best = null;
+      for (const bus of source) {
+
+        const lineToken = normalizeLineToken(bus?.line);
+        const destToken = normalizeDestination(bus?.destination);
+        const lineMatch = Boolean(runLine && lineToken && (lineToken.includes(runLine) || runLine.includes(lineToken)));
+        const destMatch = Boolean(runDest && destToken && (destToken.includes(runDest) || runDest.includes(destToken)));
+        if (!lineMatch && !destMatch) {
+          continue;
+        }
+
+        const busClock = normalizeClockText(bus?.time, runTime) || String(bus?.time || "");
+        const diff = clockDiffMinutes(busClock, runTime);
+        const timeScore = diff === null ? 25 : Math.min(diff, 120);
+
+        const score = (lineMatch ? 0 : 45) + (destMatch ? 0 : 35) + timeScore;
+        if (!best || score < best.score) {
+          best = { bus, lineMatch, destMatch, timeScore, score };
+        }
+      }
+
+      if (!best) {
+        return null;
+      }
+      if (!(best.destMatch || (best.lineMatch && best.timeScore <= 25) || best.score <= 45)) {
+        return null;
+      }
+      return best.bus;
+    }
+
+    function buildApproachQuery(stopName, options = {}) {
+      const ref = state.lastSearchFromRef || null;
+      const params = [];
+      if (options.refresh) {
+        params.push("refresh=1");
+      }
+      if (options.run) {
+        const run = options.run || {};
+        if (run.line) {
+          params.push(`trackLine=${encodeURIComponent(run.line)}`);
+        }
+        if (run.destination) {
+          params.push(`trackDestination=${encodeURIComponent(run.destination)}`);
+        }
+        if (run.time) {
+          params.push(`trackTime=${encodeURIComponent(run.time)}`);
+        }
+        params.push("gpsLimit=4");
+      }
+      if (ref && ref.stationSid) {
+        params.push(`stationSid=${encodeURIComponent(ref.stationSid)}`);
+      } else if (ref && ref.stationCode && ref.companyId) {
+        params.push(`stationCode=${encodeURIComponent(ref.stationCode)}`);
+        params.push(`companyId=${encodeURIComponent(ref.companyId)}`);
+      }
+      const label = (ref && ref.name) ? ref.name : stopName;
+      if (label) {
+        params.push(`stop=${encodeURIComponent(label)}`);
+      }
+      return params.length ? `?${params.join("&")}` : "";
+    }
+
+    function updateStopArrivalStatusFromLive(run, bus) {
+      const toName = state.lastSearchTo || toInput.value.trim() || "";
+      const baseArrival = getRunArrivalBaseClock(run, toName);
+      if (!baseArrival) {
+        return;
+      }
+
+      const liveStatus = String(bus?.status || "");
+      const expected = calcExpectedArrivalClock(baseArrival, liveStatus) || baseArrival;
+      const directArrival = normalizeClockText(run?.arrivalTime, run?.time);
+      const isEstimate = Boolean(run?.arrivalIsEstimate || (!directArrival && baseArrival));
+      stopNextStatus.textContent = isEstimate ? `到着見込み ${expected}` : `到着 ${expected}`;
+    }
+
+    async function updateTrackedBusInfo(run, options = {}) {
+      const fromName = state.lastSearchFrom || fromInput.value.trim() || homeCurrentStop.textContent || "";
+      if (!fromName) {
+        return;
+      }
+
+      const runKey = makeRunKey(run);
+      if (state.trackingRunKey !== runKey) {
+        state.trackingRunKey = runKey;
+        state.trackingMisses = 0;
+      }
+
+      try {
+        const query = buildApproachQuery(fromName, {
+          refresh: Boolean(options.refresh),
+          run: options.run || run,
+        });
+        if (!query) {
+          return;
+        }
+        const controller = new AbortController();
+        trackingAbortController = controller;
+        const res = await fetch(`${API_BASE}/stops/approach${query}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          return;
+        }
+
+        const buses = data.buses || [];
+        const tracked = findTrackedBus(run, buses);
+        if (!tracked) {
+          const approx = findApproxTrackedBus(run, buses);
+          if (approx) {
+            state.trackingMisses = 0;
+            if (isLocationUnavailableNotice(approx.location)) {
+              stopCurrentLocation.textContent = "現在地: 位置情報が配信されていない便です";
+              stopDelayInfo.textContent = `運行情報: ${approx.time || "--:--"} ${approx.line || "--"} ${approx.destination || ""}`;
+              stopDelayInfo.classList.remove("danger");
+              return;
+            }
+            stopCurrentLocation.textContent = `現在地: ${approx.location || "走行中"}（近い便）`;
+            const delayText = formatDelayStatus(approx.status, approx.time);
+            stopDelayInfo.textContent = `遅延情報: ${delayText} / 参考 ${approx.time || "--:--"} ${approx.line || "--"}`;
+            stopDelayInfo.classList.toggle("danger", isDelayDangerLabel(delayText));
+            updateStopArrivalStatusFromLive(run, approx);
+            return;
+          }
+
+          state.trackingMisses += 1;
+
+          if (Array.isArray(buses) && buses.length) {
+            const next = buses.find((b) => !isPassedBus(b)) || buses[0];
+            if (isLocationUnavailableNotice(next.location)) {
+              stopCurrentLocation.textContent = "現在地: 位置情報が配信されていない便です";
+              stopDelayInfo.textContent = `運行情報: ${next.time || "--:--"} ${next.line || "--"} ${next.destination || ""}`;
+              stopDelayInfo.classList.remove("danger");
+              return;
+            }
+
+            stopCurrentLocation.textContent = state.trackingMisses >= 2
+              ? "現在地: この便は追跡できません"
+              : "現在地: 対象便を照合中";
+            stopDelayInfo.textContent = `参考: ${next.time || "--:--"} ${next.line || "--"} ${next.destination || ""}`;
+            stopDelayInfo.classList.remove("danger");
+            return;
+          }
+
+          stopCurrentLocation.textContent = state.trackingMisses >= 2
+            ? "現在地: 追跡情報を取得できません"
+            : "現在地: 追跡対象なし";
+          stopDelayInfo.textContent = "遅延情報: -";
+          stopDelayInfo.classList.remove("danger");
+          return;
+        }
+
+        state.trackingMisses = 0;
+
+        if (isLocationUnavailableNotice(tracked.location)) {
+          stopCurrentLocation.textContent = "現在地: 位置情報が配信されていない便です";
+          stopDelayInfo.textContent = `運行情報: ${tracked.time || "--:--"} ${tracked.line || "--"} ${tracked.destination || ""}`;
+          stopDelayInfo.classList.remove("danger");
+          return;
+        }
+
+        stopCurrentLocation.textContent = `現在地: ${tracked.location || "走行中"}`;
+        const delayText = formatDelayStatus(tracked.status, tracked.time);
+        stopDelayInfo.textContent = `遅延情報: ${delayText}`;
+        stopDelayInfo.classList.toggle("danger", isDelayDangerLabel(delayText));
+        updateStopArrivalStatusFromLive(run, tracked);
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          return;
+        }
+        // Keep the previous values when polling fails.
+      } finally {
+        if (trackingAbortController) {
+          trackingAbortController = null;
+        }
+      }
+    }
+
+    function startTracking(run) {
+      stopTrackingLoop();
+      trackingRun = run;
+      state.trackingRunKey = makeRunKey(run);
+      state.trackingMisses = 0;
+      state.trackingStartedAt = Date.now();
+      state.trackingPollCount = 0;
+      scheduleTrackingPoll(run, 0);
+    }
+
+    function estimateArrivalFromStops(run, toName) {
+      const stops = Array.isArray(run?.stops) ? run.stops : [];
+      if (!stops.length) {
+        return "";
+      }
+
+      const departMinutes = timeToMinutes(run?.time || "");
+      const isReasonableArrival = (clockText) => {
+        const arrivalMinutes = timeToMinutes(clockText);
+        if (arrivalMinutes === null) {
+          return false;
+        }
+        if (departMinutes === null) {
+          return true;
+        }
+        let diff = arrivalMinutes - departMinutes;
+        if (diff < 0) {
+          diff += 24 * 60;
+        }
+        return diff >= 0 && diff <= 60;
+      };
+
+      const targetKey = normalizeStopKey(toName || state.lastSearchTo || "");
+      if (!targetKey) {
+        return "";
+      }
+
+      const matchIndexes = [];
+      stops.forEach((s, idx) => {
+        const key = normalizeStopKey(s?.name || "");
+        if (!key) {
+          return;
+        }
+        if (key === targetKey || key.includes(targetKey) || targetKey.includes(key)) {
+          matchIndexes.push(idx);
+        }
+      });
+
+      for (const idx of matchIndexes) {
+        const direct = normalizeClockText(stops[idx]?.time, run?.time);
+        if (direct && isReasonableArrival(direct)) {
+          return direct;
+        }
+
+        const backLimit = Math.max(0, idx - 3);
+        for (let back = idx - 1; back >= backLimit; back -= 1) {
+          const prev = normalizeClockText(stops[back]?.time, run?.time);
+          if (prev) {
+            const estimated = addMinutesToClock(prev, Math.min(3, idx - back));
+            if (estimated && isReasonableArrival(estimated)) {
+              return estimated;
+            }
+          }
+        }
+      }
+
+      return "";
+    }
+
+    function renderStopDetail(run, runIndex = 0) {
+      if (!run) {
+        stopDetailTitle.textContent = "バス停詳細";
+        stopDetailSubtitle.textContent = "検索結果から便を選択してください";
+        stopNextTime.textContent = "--:--";
+        stopNextDestination.textContent = "行き先: --";
+        stopCurrentLocation.textContent = "現在地: --";
+        stopDelayInfo.textContent = "遅延情報: --";
+        stopNextStatus.textContent = "-";
+        stopNextRemain.textContent = "--";
+        stopTimetableList.innerHTML = '<p class="sub">表示できる詳細がありません。</p>';
+        return;
+      }
+
+      const fromName = state.lastSearchFrom || fromInput.value.trim() || "出発バス停";
+      const toName = state.lastSearchTo || toInput.value.trim() || "到着バス停";
+
+      stopDetailTitle.textContent = fromName;
+      stopDetailSubtitle.textContent = `${toName}方面 / ${run.line || "--"}系統`;
+      stopNextTime.textContent = run.time || "--:--";
+      stopNextDestination.textContent = `行き先: ${run.destination || toName}`;
+      const arrivalClock = normalizeClockText(run.arrivalTime, run.time);
+      const fallbackArrivalClock = arrivalClock ? "" : estimateArrivalFromStops(run, toName);
+      const finalArrivalClock = arrivalClock || fallbackArrivalClock;
+      if (finalArrivalClock) {
+        const estimated = Boolean(run.arrivalIsEstimate || (!arrivalClock && fallbackArrivalClock));
+        stopNextStatus.textContent = estimated ? `到着目安 ${finalArrivalClock}` : `到着 ${finalArrivalClock}`;
+      } else {
+        stopNextStatus.textContent = "到着時刻未取得";
+      }
+      stopNextRemain.textContent = calcRemainLabel(run.time);
+      stopCurrentLocation.textContent = "現在地: 取得中...";
+      stopDelayInfo.textContent = "遅延情報: 取得中...";
+
+      const runs = Array.isArray(state.lastRuns) ? state.lastRuns : [];
+      const currentIdx = Math.max(0, runIndex);
+      const upcoming = runs.slice(currentIdx, currentIdx + 4);
+
+      if (!upcoming.length) {
+        stopTimetableList.innerHTML = '<p class="sub">停留所データがありません。</p>';
+        return;
+      }
+
+      stopTimetableList.innerHTML = upcoming.map((r, idx) => {
+        const tag = idx === 0 ? "選択中" : "予定";
+        return `
+          <div class="list-item" style="box-shadow:none;background:var(--surface-soft);margin-bottom:8px;">
+            <div class="row"><strong>${r.time || "--:--"}</strong><span class="muted">${tag}</span></div>
+            <p class="sub" style="margin:6px 0 0;">${r.destination || toName} / ${r.line || "--"}系統</p>
+          </div>
+        `;
+      }).join("");
+
+      startTracking(run);
+    }
+
+    function formatScheduleLabel() {
+      const date = dateInput.value;
+      const time = timeInput.value;
+      if (!date || !time) {
+        return "時刻指定";
+      }
+      const [, month, day] = date.split("-");
+      const modeText = state.scheduleMode === "arrive" ? "到着" : "出発";
+      return `${Number(month)}/${Number(day)} ${time} ${modeText}`;
+    }
+
+    function syncTimeModeUI() {
+      const isScheduled = state.timeMode === "scheduled";
+      nowPanel.hidden = isScheduled;
+      scheduledPanel.hidden = !isScheduled;
+    }
+
+    function isLocationKeyword(text) {
+      return /(現在地|ここ|自宅|近く)/.test((text || "").trim());
+    }
+
+    function hideSuggestBoxes() {
+      fromSuggest.hidden = true;
+      toSuggest.hidden = true;
+    }
+
+    async function fetchStopSuggestions(query) {
+      const q = (query || "").trim();
+      if (!q) {
+        return [];
+      }
+      try {
+        const res = await fetch(`${API_BASE}/stops/suggest?q=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        return data.items || [];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    async function normalizeStopName(rawValue) {
+      const value = (rawValue || "").trim();
+      if (!value) {
+        return "";
+      }
+      const items = await fetchStopSuggestions(value);
+      const exact = items.find((item) => (item.name || "").trim() === value);
+      return exact ? exact.name : value;
+    }
+
+    function readMyBusStops() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem("busnaviMyBusStops") || "[]");
+        if (Array.isArray(parsed)) {
+          return parsed
+            .map((entry) => ({
+              id: String(entry?.id || `mybus-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+              stopName: String(entry?.stopName || "").trim(),
+              directionKey: String(entry?.directionKey || "__all__"),
+              directionLabel: String(entry?.directionLabel || "すべて").trim() || "すべて",
+            }))
+            .filter((entry) => entry.stopName);
+        }
+      } catch (_) {
+        // Fall back to the legacy single-stop key below.
+      }
+
+      const legacyStop = String(localStorage.getItem("busnaviMyBusStop") || "").trim();
+      return legacyStop
+        ? [{ id: "legacy-mybus", stopName: legacyStop, directionKey: "__all__", directionLabel: "すべて" }]
+        : [];
+    }
+
+    function persistMyBusStops() {
+      localStorage.setItem("busnaviMyBusStops", JSON.stringify(state.myBusStops));
+      const firstStop = state.myBusStops[0]?.stopName || "";
+      state.myBusStop = firstStop;
+      if (firstStop) {
+        localStorage.setItem("busnaviMyBusStop", firstStop);
+      } else {
+        localStorage.removeItem("busnaviMyBusStop");
+      }
+    }
+
+    function getMyBusDisplayNames(entries = state.myBusStops) {
+      const totals = new Map();
+      entries.forEach((entry) => {
+        const key = normalizeStopKey(entry.stopName);
+        totals.set(key, (totals.get(key) || 0) + 1);
+      });
+
+      const indexes = new Map();
+      return entries.map((entry) => {
+        const key = normalizeStopKey(entry.stopName);
+        const nextIndex = (indexes.get(key) || 0) + 1;
+        indexes.set(key, nextIndex);
+        return totals.get(key) > 1 ? `${entry.stopName}${nextIndex}` : entry.stopName;
+      });
+    }
+
+    function renderMyBusDirectionOptions(items = state.myBusDirectionOptions) {
+      if (!myBusDirectionList || !myBusDirectionStatus) {
+        return;
+      }
+
+      if (!items.length) {
+        state.myBusSelectedDirectionKey = "__all__";
+        myBusDirectionStatus.textContent = String(myBusStopInput?.value || "").trim()
+          ? "方面候補がないため、すべての便として追加できます。"
+          : "バス停を入力すると方面を選べます。";
+        myBusDirectionList.innerHTML = "";
+        return;
+      }
+
+      if (state.myBusSelectedDirectionKey !== "__all__" && !items.some((item) => item.key === state.myBusSelectedDirectionKey)) {
+        state.myBusSelectedDirectionKey = "__all__";
+      }
+
+      myBusDirectionStatus.textContent = "表示したい方面を選んで追加できます。";
+      const allClass = state.myBusSelectedDirectionKey === "__all__" ? " active" : "";
+      const allButton = `<button class="chip${allClass}" type="button" data-mybus-direction="__all__">すべて</button>`;
+      const buttons = items.map((item) => {
+        const activeClass = item.key === state.myBusSelectedDirectionKey ? " active" : "";
+        return `<button class="chip${activeClass}" type="button" data-mybus-direction="${item.key}">${item.label}</button>`;
+      }).join("");
+      myBusDirectionList.innerHTML = allButton + buttons;
+
+      myBusDirectionList.querySelectorAll("[data-mybus-direction]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          state.myBusSelectedDirectionKey = String(btn.dataset.mybusDirection || "__all__");
+          renderMyBusDirectionOptions(items);
+        });
+      });
+    }
+
+    async function loadMyBusDirectionOptions(stopName) {
+      const name = String(stopName || "").trim();
+      state.myBusDirectionOptions = [];
+      state.myBusSelectedDirectionKey = "__all__";
+      if (!name) {
+        renderMyBusDirectionOptions();
+        return;
+      }
+
+      if (myBusDirectionStatus) {
+        myBusDirectionStatus.textContent = "方面を取得しています...";
+      }
+
+      try {
+        const normalized = await normalizeStopName(name);
+        const res = await fetch(`${API_BASE}/stops/directions?stop=${encodeURIComponent(normalized)}`, { cache: "no-store" });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          throw new Error(data.error || "方面を取得できませんでした");
+        }
+        let sourceItems = Array.isArray(data.items) ? data.items : [];
+        if (!sourceItems.length) {
+          const fallbackData = await fetchApproachDataByStop(normalized);
+          sourceItems = (Array.isArray(fallbackData.buses) ? fallbackData.buses : []).map((bus) => getApproachDirectionItem(bus));
+        }
+        const seen = new Set();
+        state.myBusDirectionOptions = sourceItems.reduce((items, item) => {
+          if (!item.key || seen.has(item.key)) {
+            return items;
+          }
+          seen.add(item.key);
+          items.push(item);
+          return items;
+        }, []).sort((a, b) => a.label.localeCompare(b.label, "ja"));
+        renderMyBusDirectionOptions();
+      } catch (_) {
+        if (myBusDirectionStatus) {
+          myBusDirectionStatus.textContent = "方面を取得できませんでした。すべての便として追加できます。";
+        }
+        renderMyBusDirectionOptions([]);
+      }
+    }
+
+    function updateMyBusSettingsUI(message = "") {
+      const stops = Array.isArray(state.myBusStops) ? state.myBusStops : [];
+      const displayNames = getMyBusDisplayNames(stops);
+      if (myBusStatus) {
+        myBusStatus.textContent = message || (stops.length ? `設定中: ${stops.length}件` : "未設定");
+      }
+      if (myBusPreview) {
+        myBusPreview.textContent = stops.length
+          ? "ホームにマイバス停カードをグリッド表示します。現在地が取れない時は先頭のマイバスを上部にも表示します。"
+          : "追加すると、ホームにマイバス停カードをグリッド表示します。";
+      }
+      if (settingsMyBusList) {
+        settingsMyBusList.innerHTML = stops.length
+          ? stops.map((entry, index) => `
+              <div class="settings-mybus-item">
+                <div>
+                  <strong>${displayNames[index]}</strong>
+                  <p class="sub">${entry.directionLabel || "すべて"}</p>
+                </div>
+                <button class="chip" type="button" data-remove-mybus="${entry.id}">削除</button>
+              </div>
+            `).join("")
+          : `<p class="sub" style="margin:0;">まだマイバス停はありません。</p>`;
+        settingsMyBusList.querySelectorAll("[data-remove-mybus]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const id = String(btn.dataset.removeMybus || "");
+            state.myBusStops = state.myBusStops.filter((entry) => entry.id !== id);
+            persistMyBusStops();
+            updateMyBusSettingsUI("削除しました");
+            updateHomeMyBusCards({ silent: true });
+          });
+        });
+      }
+    }
+
+    async function renderMyBusSuggest(query) {
+      const q = String(query || "").trim();
+      if (!q) {
+        myBusSuggest.hidden = true;
+        myBusSuggest.innerHTML = "";
+        return;
+      }
+      const items = await fetchStopSuggestions(q);
+      if (!items.length) {
+        myBusSuggest.hidden = true;
+        myBusSuggest.innerHTML = "";
+        return;
+      }
+      myBusSuggest.innerHTML = items.map((stop) => `
+        <button class="suggest-item" type="button" data-mybus-stop="${stop.name}">
+          <span class="suggest-main">${stop.name}</span>
+          <span class="suggest-sub">${stop.area || "バス停"}</span>
+        </button>
+      `).join("");
+      myBusSuggest.hidden = false;
+      myBusSuggest.querySelectorAll("[data-mybus-stop]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          myBusStopInput.value = btn.dataset.mybusStop || "";
+          myBusSuggest.hidden = true;
+          if (myBusDirectionTimer) {
+            clearTimeout(myBusDirectionTimer);
+          }
+          loadMyBusDirectionOptions(myBusStopInput.value);
+        });
+      });
+    }
+
+    async function saveMyBusStop() {
+      const raw = String(myBusStopInput.value || "").trim();
+      if (!raw) {
+        updateMyBusSettingsUI("バス停名を入力してください");
+        return;
+      }
+      const stopName = await normalizeStopName(raw);
+      const selectedKey = state.myBusSelectedDirectionKey || "__all__";
+      const selectedItem = state.myBusDirectionOptions.find((item) => item.key === selectedKey);
+      state.myBusStops = [
+        ...state.myBusStops,
+        {
+          id: `mybus-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          stopName,
+          directionKey: selectedKey,
+          directionLabel: selectedItem?.label || "すべて",
+        },
+      ];
+      persistMyBusStops();
+      myBusStopInput.value = "";
+      state.myBusDirectionOptions = [];
+      state.myBusSelectedDirectionKey = "__all__";
+      renderMyBusDirectionOptions();
+      updateMyBusSettingsUI(`追加しました: ${stopName}`);
+      updateHomeMyBusCards({ silent: true });
+    }
+
+    async function loadMyBusHomeData(reason = "") {
+      const entry = state.myBusStops[0];
+      const stopName = String(entry?.stopName || state.myBusStop || "").trim();
+      if (!stopName) {
+        return false;
+      }
+      try {
+        const data = await fetchApproachDataByStop(stopName, { refresh: true, gpsLimit: 10 });
+        const buses = filterBusesForMyBusEntry(data.buses || [], entry);
+        renderHomeLive(data.stop || stopName, buses);
+        homeCurrentSub.textContent = reason ? `マイバス表示中: ${reason}` : "マイバスを表示中";
+        renderHomeThreadStatus(data.stop || stopName, pickApproachMainBus(buses), "現在地の代わりにマイバスを表示しています");
+        return true;
+      } catch (_) {
+        homeCurrentSub.textContent = `マイバス「${stopName}」を取得できませんでした`;
+        return false;
+      }
+    }
+
+    function filterBusesForMyBusEntry(buses, entry) {
+      const activeBuses = filterActiveApproachBuses(buses);
+      const directionKey = String(entry?.directionKey || "__all__");
+      if (directionKey === "__all__") {
+        return activeBuses;
+      }
+      return activeBuses.filter((bus) => getApproachDirectionItem(bus).key === directionKey);
+    }
+
+    function renderHomeMyBusCards() {
+      if (!homeMyBusSection || !homeMyBusGrid) {
+        return;
+      }
+
+      const entries = Array.isArray(state.myBusStops) ? state.myBusStops : [];
+      homeMyBusSection.hidden = !entries.length;
+      if (!entries.length) {
+        homeMyBusGrid.innerHTML = "";
+        return;
+      }
+
+      const displayNames = getMyBusDisplayNames(entries);
+      const dataById = new Map((state.myBusCardData || []).map((item) => [item.entry.id, item]));
+      homeMyBusGrid.innerHTML = entries.map((entry, index) => {
+        const cardData = dataById.get(entry.id);
+        const bus = cardData?.bus || null;
+        const stopLabel = displayNames[index] || entry.stopName;
+        if (cardData?.loading) {
+          return `
+            <button class="home-mybus-card" type="button" data-home-mybus="${entry.id}" disabled>
+              <div>
+                <p class="home-mybus-direction">${entry.directionLabel || "すべて"}</p>
+                <h3 class="home-mybus-stop">${stopLabel}</h3>
+              </div>
+              <p class="home-mybus-status">取得しています...</p>
+            </button>
+          `;
+        }
+        if (!bus) {
+          const scheduled = cardData?.nextScheduled || null;
+          const status = cardData?.error || (scheduled ? "接近中の便はありません" : "接近中の便はありません");
+          const nextTime = String(scheduled?.nextTime || "").trim();
+          const nextLabel = scheduled?.nextIsFirst ? "始発便" : "次便";
+          return `
+            <button class="home-mybus-card" type="button" data-home-mybus="${entry.id}">
+              <div>
+                <p class="home-mybus-direction">${entry.directionLabel || "すべて"}</p>
+                <h3 class="home-mybus-stop">${stopLabel}</h3>
+              </div>
+              <div>
+                ${nextTime ? `<div class="home-mybus-time-row"><span class="home-mybus-time">${nextTime}</span><span class="home-mybus-remain">${nextLabel}</span></div>` : ""}
+                <p class="home-mybus-status">${status}</p>
+              </div>
+            </button>
+          `;
+        }
+
+        const timeText = toApproachClockText(bus.time) || "--:--";
+        const delayText = formatDelayStatus(bus.status, bus.time);
+        const expectedClock = calcExpectedArrivalClock(timeText, delayText);
+        const remainText = calcRemainLabel(expectedClock || timeText);
+        const delayArrivalText = delayText === "定刻" || !/^\d{2}:\d{2}$/.test(expectedClock)
+          ? ""
+          : `<p class="home-mybus-delay-arrival">遅延見込み到着 ${expectedClock}</p>`;
+        return `
+          <button class="home-mybus-card" type="button" data-home-mybus="${entry.id}">
+            <div>
+              <p class="home-mybus-direction">${entry.directionLabel || "すべて"}</p>
+              <h3 class="home-mybus-stop">${stopLabel}</h3>
+              <p class="home-mybus-dest">${bus.line || "--"}系統 / ${bus.destination || "行き先不明"}</p>
+            </div>
+            <div>
+              <div class="home-mybus-time-row">
+                <span class="home-mybus-time">${timeText}</span>
+                <span class="home-mybus-remain">${remainText}</span>
+              </div>
+              <p class="home-mybus-status">運行: ${delayText}</p>
+              ${delayArrivalText}
+            </div>
+          </button>
+        `;
+      }).join("");
+
+      homeMyBusGrid.querySelectorAll("[data-home-mybus]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const entry = state.myBusStops.find((item) => item.id === btn.dataset.homeMybus);
+          if (!entry) {
+            return;
+          }
+          approachStopInput.value = entry.stopName;
+          state.approachDirectionFilter = entry.directionKey || "__all__";
+          showScreen("approach");
+          await runApproachSearch(entry.stopName, {
+            manualTrigger: true,
+            preferredDirectionKey: entry.directionKey || "__all__",
+          });
+        });
+      });
+    }
+
+    async function updateHomeMyBusCards(options = {}) {
+      if (!Array.isArray(state.myBusStops) || !state.myBusStops.length) {
+        state.myBusCardData = [];
+        renderHomeMyBusCards();
+        return;
+      }
+
+      if (!options.silent) {
+        state.myBusCardData = state.myBusStops.map((entry) => ({ entry, loading: true }));
+        renderHomeMyBusCards();
+      }
+
+      const rows = await Promise.all(state.myBusStops.map(async (entry) => {
+        try {
+          const data = await fetchApproachDataByStop(entry.stopName, { refresh: true, gpsLimit: 10 });
+          const buses = filterBusesForMyBusEntry(data.buses || [], entry);
+          const directionOptions = Array.isArray(data.directionOptions) ? data.directionOptions : [];
+          return {
+            entry,
+            resolvedStop: data.stop || entry.stopName,
+            bus: pickApproachMainBus(buses),
+            nextScheduled: directionOptions.find((item) => item.key === entry.directionKey) || null,
+          };
+        } catch (_) {
+          return {
+            entry,
+            bus: null,
+            error: "取得できませんでした",
+          };
+        }
+      }));
+
+      state.myBusCardData = rows;
+      renderHomeMyBusCards();
+    }
+
+    async function renderSuggest(targetInput, targetBox, query, targetName) {
+      const items = await fetchStopSuggestions(query);
+      if (!items.length) {
+        targetBox.hidden = true;
+        targetBox.innerHTML = "";
+        return;
+      }
+      targetBox.innerHTML = items.map((stop) => `
+        <button class="suggest-item" type="button" data-stop-name="${stop.name}">
+          <span class="suggest-main">${stop.name}</span>
+          <span class="suggest-sub">${stop.area || "バス停"}</span>
+        </button>
+      `).join("");
+      targetBox.hidden = false;
+      targetBox.querySelectorAll("[data-stop-name]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          targetInput.value = btn.dataset.stopName;
+          targetBox.hidden = true;
+          nearbyPanel.hidden = true;
+          if (targetName === "from") {
+            stopSelectState.fromConfirmed = true;
+          } else {
+            stopSelectState.toConfirmed = true;
+          }
+          showError("");
+        });
+      });
+    }
+
+    async function openNearbyPhase(target) {
+      state.nearbyTarget = target;
+      const label = target === "to" ? "到着バス停" : "出発バス停";
+      nearbyStatus.textContent = `${label}として近くのバス停を選択してください`;
+
+      try {
+        const nearbyData = await fetchNearbyStops();
+        const nearest = (nearbyData.items || []).slice(0, 5);
+
+        if (!nearest.length) {
+          nearbyStatus.textContent = "近くのバス停が見つかりません。候補検索を利用してください。";
+          nearbyList.innerHTML = "";
+          nearbyPanel.hidden = false;
+          return;
+        }
+
+        nearbyList.innerHTML = nearest.map((stop, idx) => `
+          <button class="nearby-item" type="button" data-nearby-stop="${stop.name}">
+            <strong>${stop.name}</strong>
+            <span>徒歩 ${idx + 1}分</span>
+          </button>
+        `).join("");
+
+        nearbyList.querySelectorAll("[data-nearby-stop]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const input = state.nearbyTarget === "to" ? toInput : fromInput;
+            input.value = btn.dataset.nearbyStop;
+            if (state.nearbyTarget === "to") {
+              stopSelectState.toConfirmed = true;
+            } else {
+              stopSelectState.fromConfirmed = true;
+            }
+            nearbyPanel.hidden = true;
+            hideSuggestBoxes();
+            showError("");
+          });
+        });
+
+        nearbyPanel.hidden = false;
+      } catch (_) {
+        nearbyStatus.textContent = "近くのバス停の取得に失敗しました";
+        nearbyList.innerHTML = "";
+        nearbyPanel.hidden = false;
+      }
+    }
+
+    function bindSuggest(input, box, targetName) {
+      input.addEventListener("focus", () => {
+        if (!isLocationKeyword(input.value)) {
+          renderSuggest(input, box, input.value, targetName);
+        }
+      });
+
+      input.addEventListener("input", () => {
+        if (targetName === "from") {
+          stopSelectState.fromConfirmed = false;
+        } else {
+          stopSelectState.toConfirmed = false;
+        }
+        if (isLocationKeyword(input.value)) {
+          hideSuggestBoxes();
+          openNearbyPhase(targetName);
+          return;
+        }
+        renderSuggest(input, box, input.value, targetName);
+      });
+
+      input.addEventListener("blur", () => {
+        setTimeout(() => {
+          box.hidden = true;
+        }, 120);
+      });
+    }
+
+    function setInitialScheduleValues() {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const d = String(now.getDate()).padStart(2, "0");
+      const roundedMinute = Math.ceil(now.getMinutes() / 5) * 5;
+      const hh = String((now.getHours() + Math.floor(roundedMinute / 60)) % 24).padStart(2, "0");
+      const mm = String(roundedMinute % 60).padStart(2, "0");
+      dateInput.value = `${y}-${m}-${d}`;
+      timeInput.value = `${hh}:${mm}`;
+    }
+
+    function getRunArrivalBaseClock(run, toName = "") {
+      const direct = normalizeClockText(run?.arrivalTime, run?.time);
+      if (direct) {
+        return direct;
+      }
+      return estimateArrivalFromStops(run, toName || state.lastSearchTo || "");
+    }
+
+    function renderResultRuns(runs, transferHints = []) {
+      if (!runs.length) {
+        if (Array.isArray(transferHints) && transferHints.length) {
+          resultList.innerHTML = `
+            <div class="card soft" style="margin-bottom:10px;">
+              <p class="sub" style="margin:0;font-weight:700;color:var(--primary);">直通便が見つかりません</p>
+              <p class="sub" style="margin:6px 0 0;">近くのバス停まで徒歩で移動して乗り換える候補です。</p>
+            </div>
+          ` + transferHints.map((hint, idx) => {
+            const nextBus = hint.nextBus || {};
+            const hasDirectCandidate = Boolean(hint.hasDirectCandidate && nextBus.time);
+            return `
+              <div class="list-item transfer-hint-card" style="cursor:default;">
+                <div class="row">
+                  <strong>徒歩 ${hint.walkMinutes || "--"}分</strong>
+                  <span class="muted">候補${idx + 1}</span>
+                </div>
+                <p class="sub" style="margin:8px 0 0;">${hint.walkTo || "近隣バス停"}まで移動（約${Math.round(hint.distanceM || 0)}m）</p>
+                <p class="sub" style="margin:4px 0 0;">${hasDirectCandidate ? `${nextBus.time || "--:--"} 発 / ${nextBus.line || "--"} / ${nextBus.destination || "--"}` : "この停留所から再検索して乗り換え候補を表示"}</p>
+                <p class="sub" style="margin:4px 0 0;">${hasDirectCandidate ? `到着見込み ${nextBus.arrivalTime || "--:--"}` : "直通便がない可能性があります"}</p>
+                <button class="btn ghost" style="margin-top:10px;height:36px;" data-apply-transfer="${hint.walkTo || ""}">この停留所を出発地にする</button>
+              </div>
+            `;
+          }).join("");
+
+          resultList.querySelectorAll("[data-apply-transfer]").forEach((btn) => {
+            btn.addEventListener("click", () => {
+              const nextFrom = (btn.dataset.applyTransfer || "").trim();
+              if (!nextFrom) {
+                return;
+              }
+              fromInput.value = nextFrom;
+              stopSelectState.fromConfirmed = true;
+              showScreen("search");
+              showError("");
+            });
+          });
+          return;
+        }
+
+        resultList.innerHTML = '<div class="card"><p class="sub">該当する運行が見つかりませんでした。</p></div>';
+        return;
+      }
+
+      resultList.innerHTML = runs.slice(0, 5).map((run, idx) => {
+        const chips = [
+          `<span class="chip">${run.line || "--"}</span>`,
+          `<span class="chip">${run.destination || ""}</span>`
+        ].join("");
+
+        const depart = run.time || "--:--";
+        const baseArrival = getRunArrivalBaseClock(run, state.lastSearchTo || "");
+        const liveStatus = String(run.liveStatus || run.status || "");
+        const arrival = (baseArrival ? calcExpectedArrivalClock(baseArrival, liveStatus) : "") || baseArrival || "--:--";
+        const delay = formatDelayStatus(liveStatus, run.time);
+        const delayClass = isDelayDangerLabel(delay) ? "danger" : "";
+
+        return `
+          <button class="list-item result-run-card" data-detail="dynamic" data-run-index="${idx}">
+            <div class="result-run-head">
+              <div class="result-run-time-row">
+                <strong class="result-time">${depart}</strong>
+                <span class="result-arrow">→</span>
+                <strong class="result-arrival">${arrival}</strong>
+              </div>
+              <span class="chip">詳細</span>
+            </div>
+            <div class="chips" style="margin-top:8px;">${chips}</div>
+            <p class="sub ${delayClass}" style="margin-top:8px;">運行: ${delay}</p>
+          </button>
+        `;
+      }).join("");
+
+      resultList.querySelectorAll("[data-detail]").forEach((item) => {
+        item.addEventListener("click", () => {
+          const idx = Number(item.dataset.runIndex || 0);
+          renderStopDetail(runs[idx] || runs[0], idx);
+          showScreen("stop");
+        });
+      });
+    }
+
+    async function runRouteSearch() {
+      if (isLocationKeyword(fromInput.value)) {
+        showError("出発バス停を現在地近くの候補から選択してください");
+        openNearbyPhase("from");
+        return;
+      }
+      if (isLocationKeyword(toInput.value)) {
+        showError("到着バス停を現在地近くの候補から選択してください");
+        openNearbyPhase("to");
+        return;
+      }
+      if (!fromInput.value.trim()) {
+        showError("出発バス停を入力してください");
+        return;
+      }
+      if (!toInput.value.trim()) {
+        showError("到着バス停を入力してください");
+        return;
+      }
+
+      showError("");
+
+      const from = await normalizeStopName(fromInput.value);
+      const to = await normalizeStopName(toInput.value);
+      fromInput.value = from;
+      toInput.value = to;
+      const now = new Date();
+      const selectedDate = state.timeMode === "scheduled" && dateInput.value
+        ? dateInput.value
+        : `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const [yyyy, mm, dd] = selectedDate.split("-");
+      const hhmm = state.timeMode === "scheduled"
+        ? (timeInput.value || "00:00")
+        : `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+      const body = {
+        from,
+        to,
+        limit: 6,
+        searchMode: state.timeMode === "scheduled" ? state.scheduleMode : "depart",
+        queryTime: `${yyyy}/${mm}/${dd} ${hhmm}`,
+        serviceDate: `${yyyy}/${mm}/${dd}`
+      };
+
+      setSearchLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/routes/search`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          showError(data.error || "検索に失敗しました");
+          return;
+        }
+
+        const modeText = state.timeMode === "now" ? "現在出発" : formatScheduleLabel();
+        state.lastSearchFrom = data.from || from;
+        state.lastSearchTo = data.to || to;
+        state.lastSearchFromRef = data.fromStop || null;
+        state.lastSearchToRef = data.toStop || null;
+        state.lastFallback = data.fallback || "";
+        state.lastTransferHints = data.transferHints || [];
+        state.lastRuns = data.runs || [];
+        saveSearchHistory(state.lastSearchFrom, state.lastSearchTo);
+        renderHistoryContainers();
+        resultRoute.textContent = `${data.from} -> ${data.to}`;
+        if ((data.runs || []).length) {
+          resultMeta.textContent = `${modeText} / ${(data.runs || []).length}件の候補`;
+        } else if ((data.transferHints || []).length) {
+          resultMeta.textContent = `${modeText} / 直通なし（徒歩+乗り換え候補 ${(data.transferHints || []).length}件）`;
+        } else {
+          resultMeta.textContent = `${modeText} / 0件`;
+        }
+        renderResultRuns(data.runs || [], data.transferHints || []);
+        showScreen("results");
+      } catch (_) {
+        showError("サーバーに接続できません。busnavi_server.py を起動してください");
+      } finally {
+        setSearchLoading(false);
+      }
+    }
+
+    openMenuBtn.addEventListener("click", () => setMenuOpen(true));
+    closeMenuBtn.addEventListener("click", () => setMenuOpen(false));
+    menuBackdrop.addEventListener("click", () => setMenuOpen(false));
+    openSettingsBtn.addEventListener("click", () => showScreen("settings"));
+    menuItems.forEach((item) => {
+      item.addEventListener("click", () => {
+        setMenuOpen(false);
+        showScreen(item.dataset.menuTarget);
+      });
+    });
+
+    tabs.forEach((tab) => {
+      tab.addEventListener("click", () => showScreen(tab.dataset.target));
+    });
+
+    document.querySelectorAll(".quick-action[data-target]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        showScreen(btn.dataset.target);
+      });
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        if (state.currentScreen === "stop" && trackingRun) {
+          scheduleTrackingPoll(trackingRun, 0);
+        }
+        if (state.currentScreen === "home") {
+          scheduleHomeLivePoll(0);
+        }
+        if (state.currentScreen === "results") {
+          scheduleResultsLivePoll(0);
+        }
+        if (state.currentScreen === "approach") {
+          scheduleApproachLivePoll(0);
+        }
+      } else if (state.currentScreen === "home") {
+        stopHomeLiveLoop();
+      } else if (state.currentScreen === "results") {
+        stopResultsLiveLoop();
+      } else if (state.currentScreen === "approach") {
+        stopApproachLiveLoop();
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    });
+
+    document.getElementById("openStopDetail").addEventListener("click", () => {
+      const homeRun = Array.isArray(state.homeRuns) && state.homeRuns.length ? state.homeRuns[0] : null;
+      state.lastSearchFromRef = null;
+      state.lastSearchToRef = null;
+      state.lastSearchFrom = homeCurrentStop.textContent || "";
+      renderStopDetail(homeRun, 0);
+      showScreen("stop");
+    });
+    document.getElementById("backToResults").addEventListener("click", () => showScreen("results"));
+    document.getElementById("runSearch").addEventListener("click", runRouteSearch);
+    runApproachSearchBtn.addEventListener("click", () => runApproachSearch("", { manualTrigger: true }));
+    refreshApproachCandidatesBtn.addEventListener("click", () => {
+      state.approachManualSearchActive = false;
+      setApproachCandidateVisibility(true);
+      loadApproachCandidates(true);
+    });
+    applyApproachToFromBtn.addEventListener("click", () => {
+      const stopName = String(state.approachSelectedStop || "").trim();
+      if (!stopName) {
+        return;
+      }
+      fromInput.value = stopName;
+      stopSelectState.fromConfirmed = true;
+      showScreen("search");
+      showError("");
+    });
+
+    document.querySelectorAll("[data-time]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.timeMode = btn.dataset.time;
+        document.querySelectorAll("[data-time]").forEach((x) => x.classList.remove("active"));
+        btn.classList.add("active");
+        syncTimeModeUI();
+      });
+    });
+
+    document.querySelectorAll("[data-schedule-mode]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.scheduleMode = btn.dataset.scheduleMode;
+        document.querySelectorAll("[data-schedule-mode]").forEach((x) => x.classList.remove("active"));
+        btn.classList.add("active");
+      });
+    });
+
+    clearRecentBtn.addEventListener("click", () => {
+      localStorage.removeItem("busnaviSearchHistory");
+      renderHistoryContainers();
+    });
+
+    saveMyBusBtn.addEventListener("click", () => {
+      saveMyBusStop();
+    });
+
+    clearMyBusBtn.addEventListener("click", () => {
+      state.myBusStops = [];
+      persistMyBusStops();
+      updateMyBusSettingsUI("マイバスを解除しました");
+      updateHomeMyBusCards({ silent: true });
+    });
+
+    showMyBusNowBtn.addEventListener("click", async () => {
+      await updateHomeMyBusCards();
+      const shown = await loadMyBusHomeData("設定から手動表示");
+      if (shown) {
+        showScreen("home");
+      } else {
+        updateMyBusSettingsUI("マイバスを取得できませんでした");
+      }
+    });
+
+    refreshMyBusCardsBtn.addEventListener("click", () => {
+      updateHomeMyBusCards();
+    });
+
+    closeBusTimelineBtn.addEventListener("click", () => {
+      setBusTimelineOpen(false);
+    });
+
+    busTimelineBackdrop.addEventListener("click", () => {
+      setBusTimelineOpen(false);
+    });
+
+    myBusStopInput.addEventListener("focus", () => {
+      renderMyBusSuggest(myBusStopInput.value);
+    });
+
+    myBusStopInput.addEventListener("input", () => {
+      renderMyBusSuggest(myBusStopInput.value);
+      state.myBusDirectionOptions = [];
+      state.myBusSelectedDirectionKey = "__all__";
+      renderMyBusDirectionOptions();
+      if (myBusDirectionTimer) {
+        clearTimeout(myBusDirectionTimer);
+      }
+      const value = myBusStopInput.value;
+      myBusDirectionTimer = setTimeout(() => {
+        loadMyBusDirectionOptions(value);
+      }, 650);
+    });
+
+    myBusStopInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        myBusSuggest.hidden = true;
+        loadMyBusDirectionOptions(myBusStopInput.value);
+      }
+    });
+
+    myBusStopInput.addEventListener("blur", () => {
+      setTimeout(() => {
+        myBusSuggest.hidden = true;
+      }, 120);
+    });
+
+    homeRefreshLocationBtn.addEventListener("click", () => {
+      state.currentCoords = null;
+      state.currentCoordsAt = 0;
+      loadHomeLiveData().finally(() => {
+        if (state.currentScreen === "home") {
+          scheduleHomeLivePoll(HOME_POLL_MS);
+        }
+      });
+    });
+
+    nearbySearchBtn.addEventListener("click", () => {
+      const active = document.activeElement === toInput ? "to" : "from";
+      openNearbyPhase(active);
+    });
+
+    bindSuggest(fromInput, fromSuggest, "from");
+    bindSuggest(toInput, toSuggest, "to");
+    bindApproachSuggest();
+
+    setInitialScheduleValues();
+    syncTimeModeUI();
+    updateMyBusSettingsUI();
+    renderMyBusDirectionOptions();
+    renderHomeMyBusCards();
+    renderHistoryContainers();
+    setApproachCandidateVisibility(true);
+    renderApproachResults("", []);
+    scheduleHomeLivePoll(0);
+  </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
