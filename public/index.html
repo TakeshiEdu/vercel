@@ -2260,6 +2260,7 @@
     const LEGACY_MY_BUS_STORAGE_KEY = "busnaviMyBusStop";
     const MY_BUS_COOKIE_KEY = "busnavi_my_bus_stops";
     const LEGACY_MY_BUS_COOKIE_KEY = "busnavi_my_bus_stop";
+    const MY_BUS_DIRECTIONS_SOURCE = "timetable-v2";
 
     function readStorageValue(key) {
       try {
@@ -2331,7 +2332,8 @@
       myBusStop: readStorageValue(LEGACY_MY_BUS_STORAGE_KEY) || decodeURIComponent(readCookieValue(LEGACY_MY_BUS_COOKIE_KEY) || ""),
       myBusDirectionOptions: [],
       myBusSelectedDirectionKey: "__all__",
-      myBusCardData: []
+      myBusCardData: [],
+      myBusDirectionRequestId: 0
     };
 
     const stopSelectState = {
@@ -4490,9 +4492,11 @@
 
     async function loadMyBusDirectionOptions(stopName) {
       const name = String(stopName || "").trim();
-      state.myBusDirectionOptions = [];
-      state.myBusSelectedDirectionKey = "__all__";
+      const requestId = state.myBusDirectionRequestId + 1;
+      state.myBusDirectionRequestId = requestId;
       if (!name) {
+        state.myBusDirectionOptions = [];
+        state.myBusSelectedDirectionKey = "__all__";
         renderMyBusDirectionOptions();
         return;
       }
@@ -4503,16 +4507,22 @@
 
       try {
         const normalized = await normalizeStopName(name);
-        const res = await fetch(`${API_BASE}/stops/directions?stop=${encodeURIComponent(normalized)}`, { cache: "no-store" });
+        if (requestId !== state.myBusDirectionRequestId || name !== String(myBusStopInput?.value || "").trim()) {
+          return;
+        }
+        const params = new URLSearchParams({
+          stop: normalized,
+          source: MY_BUS_DIRECTIONS_SOURCE,
+        });
+        const res = await fetch(`${API_BASE}/stops/directions?${params.toString()}`, { cache: "no-store" });
         const data = await res.json();
+        if (requestId !== state.myBusDirectionRequestId || name !== String(myBusStopInput?.value || "").trim()) {
+          return;
+        }
         if (!res.ok || data.error) {
           throw new Error(data.error || "方面を取得できませんでした");
         }
-        let sourceItems = Array.isArray(data.items) ? data.items : [];
-        if (!sourceItems.length) {
-          const fallbackData = await fetchApproachDataByStop(normalized);
-          sourceItems = (Array.isArray(fallbackData.buses) ? fallbackData.buses : []).map((bus) => getApproachDirectionItem(bus));
-        }
+        const sourceItems = Array.isArray(data.items) ? data.items : [];
         const seen = new Set();
         state.myBusDirectionOptions = sourceItems.reduce((items, item) => {
           if (!item.key || seen.has(item.key)) {
@@ -4524,10 +4534,13 @@
         }, []).sort((a, b) => a.label.localeCompare(b.label, "ja"));
         renderMyBusDirectionOptions();
       } catch (_) {
+        if (requestId !== state.myBusDirectionRequestId) {
+          return;
+        }
         if (myBusDirectionStatus) {
           myBusDirectionStatus.textContent = "方面を取得できませんでした。すべての便として追加できます。";
         }
-        renderMyBusDirectionOptions([]);
+        renderMyBusDirectionOptions(state.myBusDirectionOptions);
       }
     }
 
@@ -5207,6 +5220,7 @@
 
     myBusStopInput.addEventListener("input", () => {
       renderMyBusSuggest(myBusStopInput.value);
+      state.myBusDirectionRequestId += 1;
       state.myBusDirectionOptions = [];
       state.myBusSelectedDirectionKey = "__all__";
       renderMyBusDirectionOptions();

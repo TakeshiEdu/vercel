@@ -970,6 +970,7 @@ def get_stop_direction_options(stop_name: str, service_date: str | None = None) 
 
     sids: list[str] = []
     sid_points: list[tuple[Any, Any]] = []
+    sid_source_stops: list[dict[str, Any]] = [stop]
     try:
         candidates = suggest_stops(stop_name)
     except Exception:
@@ -983,6 +984,7 @@ def get_stop_direction_options(stop_name: str, service_date: str | None = None) 
         sid = str(candidate.get("stationSid") or candidate.get("StationSid") or "").strip()
         if sid and sid not in sids:
             sids.append(sid)
+        sid_source_stops.append(candidate)
         lat = candidate.get("lat") if candidate.get("lat") not in (None, "") else candidate.get("Latitude")
         lng = candidate.get("lng") if candidate.get("lng") not in (None, "") else candidate.get("Longitude")
         if lat not in (None, "") and lng not in (None, ""):
@@ -1003,6 +1005,7 @@ def get_stop_direction_options(stop_name: str, service_date: str | None = None) 
         sid = str(candidate.get("StationSid") or candidate.get("stationSid") or "").strip()
         if sid and sid not in sids:
             sids.append(sid)
+        sid_source_stops.append(candidate)
         lat = candidate.get("Latitude") if candidate.get("Latitude") not in (None, "") else candidate.get("lat")
         lng = candidate.get("Longitude") if candidate.get("Longitude") not in (None, "") else candidate.get("lng")
         if lat not in (None, "") and lng not in (None, ""):
@@ -1030,6 +1033,19 @@ def get_stop_direction_options(stop_name: str, service_date: str | None = None) 
             if not sid_text or sid_text in seen_near_sids:
                 continue
             seen_near_sids.add(sid_text)
+            sids.append(sid_text)
+
+    seen_candidate_sids = set(sids)
+    for source_stop in sid_source_stops:
+        try:
+            candidate_sids = get_station_sid_candidates(source_stop, stop_name, radius_m=1000, limit=16)
+        except Exception:
+            candidate_sids = []
+        for sid in candidate_sids:
+            sid_text = str(sid or "").strip()
+            if not sid_text or sid_text in seen_candidate_sids:
+                continue
+            seen_candidate_sids.add(sid_text)
             sids.append(sid_text)
 
     if not sids:
