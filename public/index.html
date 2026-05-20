@@ -1352,7 +1352,7 @@
     .home-mybus-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
+      gap: 8px;
     }
 
     .home-mybus-card {
@@ -1793,10 +1793,6 @@
         grid-template-columns: 1fr;
       }
 
-      .home-mybus-grid {
-        grid-template-columns: 1fr;
-      }
-
       .home-live-line {
         font-size: 20px;
       }
@@ -1813,6 +1809,40 @@
       .home-thread-title {
         letter-spacing: 0.03em;
       }
+
+      .home-mybus-card {
+        min-height: 142px;
+        border-radius: 20px;
+        padding: 12px;
+        gap: 8px;
+      }
+
+      .home-mybus-card::after {
+        width: 104px;
+        height: 104px;
+        right: -42px;
+        top: -42px;
+      }
+
+      .home-mybus-stop {
+        font-size: 16px;
+      }
+
+      .home-mybus-direction,
+      .home-mybus-dest,
+      .home-mybus-status,
+      .home-mybus-delay-arrival {
+        font-size: 11px;
+      }
+
+      .home-mybus-time {
+        font-size: 27px;
+      }
+
+      .home-mybus-remain {
+        padding: 5px 7px;
+        font-size: 10px;
+      }
     }
 
     @media (max-width: 430px) {
@@ -1821,7 +1851,7 @@
       }
 
       .home-mybus-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
   </style>
