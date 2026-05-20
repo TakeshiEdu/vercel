@@ -6,7 +6,11 @@
   <title>バスナビおおいた - 統合UI</title>
   <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="apple-touch-icon" href="/favicon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
   <meta name="theme-color" content="#002068">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="バスナビおおいた">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -2252,6 +2256,51 @@
 
   <script>
     const API_BASE = `${window.location.origin}/api`;
+    const MY_BUS_STORAGE_KEY = "busnaviMyBusStops";
+    const LEGACY_MY_BUS_STORAGE_KEY = "busnaviMyBusStop";
+    const MY_BUS_COOKIE_KEY = "busnavi_my_bus_stops";
+    const LEGACY_MY_BUS_COOKIE_KEY = "busnavi_my_bus_stop";
+
+    function readStorageValue(key) {
+      try {
+        return localStorage.getItem(key) || "";
+      } catch (_) {
+        return "";
+      }
+    }
+
+    function writeStorageValue(key, value) {
+      try {
+        localStorage.setItem(key, value);
+      } catch (_) {
+        // iOS standalone mode can occasionally reject Web Storage; cookie backup below keeps My Bus usable.
+      }
+    }
+
+    function removeStorageValue(key) {
+      try {
+        localStorage.removeItem(key);
+      } catch (_) {
+        // Ignore storage failures and rely on the cookie mirror.
+      }
+    }
+
+    function readCookieValue(key) {
+      const prefix = `${key}=`;
+      return document.cookie
+        .split(";")
+        .map((item) => item.trim())
+        .find((item) => item.startsWith(prefix))
+        ?.slice(prefix.length) || "";
+    }
+
+    function writeCookieValue(key, value, maxAgeSeconds = 60 * 60 * 24 * 365) {
+      document.cookie = `${key}=${encodeURIComponent(value)}; Max-Age=${maxAgeSeconds}; Path=/; SameSite=Lax; Secure`;
+    }
+
+    function removeCookieValue(key) {
+      document.cookie = `${key}=; Max-Age=0; Path=/; SameSite=Lax; Secure`;
+    }
 
     const state = {
       currentScreen: "home",
@@ -2279,7 +2328,7 @@
       currentCoordsAt: 0,
       lastLocationError: null,
       myBusStops: readMyBusStops(),
-      myBusStop: localStorage.getItem("busnaviMyBusStop") || "",
+      myBusStop: readStorageValue(LEGACY_MY_BUS_STORAGE_KEY) || decodeURIComponent(readCookieValue(LEGACY_MY_BUS_COOKIE_KEY) || ""),
       myBusDirectionOptions: [],
       myBusSelectedDirectionKey: "__all__",
       myBusCardData: []
@@ -4343,9 +4392,10 @@
 
     function readMyBusStops() {
       try {
-        const parsed = JSON.parse(localStorage.getItem("busnaviMyBusStops") || "[]");
+        const stored = readStorageValue(MY_BUS_STORAGE_KEY) || decodeURIComponent(readCookieValue(MY_BUS_COOKIE_KEY) || "");
+        const parsed = JSON.parse(stored || "[]");
         if (Array.isArray(parsed)) {
-          return parsed
+          const entries = parsed
             .map((entry) => ({
               id: String(entry?.id || `mybus-${Date.now()}-${Math.random().toString(16).slice(2)}`),
               stopName: String(entry?.stopName || "").trim(),
@@ -4353,25 +4403,37 @@
               directionLabel: String(entry?.directionLabel || "すべて").trim() || "すべて",
             }))
             .filter((entry) => entry.stopName);
+          if (entries.length && !readStorageValue(MY_BUS_STORAGE_KEY)) {
+            writeStorageValue(MY_BUS_STORAGE_KEY, JSON.stringify(entries));
+          }
+          return entries;
         }
       } catch (_) {
         // Fall back to the legacy single-stop key below.
       }
 
-      const legacyStop = String(localStorage.getItem("busnaviMyBusStop") || "").trim();
+      const legacyStop = String(readStorageValue(LEGACY_MY_BUS_STORAGE_KEY) || decodeURIComponent(readCookieValue(LEGACY_MY_BUS_COOKIE_KEY) || "")).trim();
       return legacyStop
         ? [{ id: "legacy-mybus", stopName: legacyStop, directionKey: "__all__", directionLabel: "すべて" }]
         : [];
     }
 
     function persistMyBusStops() {
-      localStorage.setItem("busnaviMyBusStops", JSON.stringify(state.myBusStops));
+      const payload = JSON.stringify(state.myBusStops);
+      writeStorageValue(MY_BUS_STORAGE_KEY, payload);
+      if (state.myBusStops.length) {
+        writeCookieValue(MY_BUS_COOKIE_KEY, payload);
+      } else {
+        removeCookieValue(MY_BUS_COOKIE_KEY);
+      }
       const firstStop = state.myBusStops[0]?.stopName || "";
       state.myBusStop = firstStop;
       if (firstStop) {
-        localStorage.setItem("busnaviMyBusStop", firstStop);
+        writeStorageValue(LEGACY_MY_BUS_STORAGE_KEY, firstStop);
+        writeCookieValue(LEGACY_MY_BUS_COOKIE_KEY, firstStop);
       } else {
-        localStorage.removeItem("busnaviMyBusStop");
+        removeStorageValue(LEGACY_MY_BUS_STORAGE_KEY);
+        removeCookieValue(LEGACY_MY_BUS_COOKIE_KEY);
       }
     }
 
