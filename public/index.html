@@ -4769,28 +4769,31 @@
         renderHomeMyBusCards();
       }
 
-      const rows = await Promise.all(state.myBusStops.map(async (entry) => {
+      const rows = state.myBusStops.map((entry) => ({ entry, loading: true }));
+      state.myBusCardData = rows;
+      renderHomeMyBusCards();
+
+      await Promise.all(state.myBusStops.map(async (entry, index) => {
         try {
           const data = await fetchApproachDataByStop(entry.stopName, { refresh: true, gpsLimit: 10 });
           const buses = filterBusesForMyBusEntry(data.buses || [], entry);
           const directionOptions = Array.isArray(data.directionOptions) ? data.directionOptions : [];
-          return {
+          rows[index] = {
             entry,
             resolvedStop: data.stop || entry.stopName,
             bus: pickApproachMainBus(buses),
             nextScheduled: directionOptions.find((item) => item.key === entry.directionKey) || null,
           };
         } catch (_) {
-          return {
+          rows[index] = {
             entry,
             bus: null,
             error: "取得できませんでした",
           };
         }
+        state.myBusCardData = [...rows];
+        renderHomeMyBusCards();
       }));
-
-      state.myBusCardData = rows;
-      renderHomeMyBusCards();
     }
 
     async function renderSuggest(targetInput, targetBox, query, targetName) {
