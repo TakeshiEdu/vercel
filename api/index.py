@@ -4,6 +4,7 @@ import json
 import math
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,8 @@ app = Flask(__name__, static_folder=str(STITCH_DIR), static_url_path="")
 
 _HTTP = requests.Session()
 _TTL_CACHE: dict[str, tuple[float, Any]] = {}
+APPROACH_FETCH_WORKERS = 4
+BUS_LOCATION_FETCH_WORKERS = 4
 
 
 def _cache_get(key: str) -> Any | None:
@@ -2031,14 +2034,24 @@ def api_stop_approach():
     if explicit_stop_query:
         norm_query = _normalize_stop_name(stop_name)
         norm_query_base = _normalize_stop_name_base(stop_name)
-        try:
-            candidates_by_name = suggest_stops(stop_name)
-        except Exception:
-            candidates_by_name = []
-        try:
-            transit_candidates = get_stop_candidates(stop_name, limit=12)
-        except Exception:
-            transit_candidates = []
+
+        def _load_approach_candidates() -> list[dict[str, Any]]:
+            try:
+                return suggest_stops(stop_name)
+            except Exception:
+                return []
+
+        def _load_transit_candidates() -> list[dict[str, Any]]:
+            try:
+                return get_stop_candidates(stop_name, limit=12)
+            except Exception:
+                return []
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            approach_future = executor.submit(_load_approach_candidates)
+            transit_future = executor.submit(_load_transit_candidates)
+            candidates_by_name = approach_future.result()
+            transit_candidates = transit_future.result()
 
         merged_candidates: list[dict[str, Any]] = list(candidates_by_name)
         for tc in transit_candidates:
@@ -2097,6 +2110,35 @@ def api_stop_approach():
         if (not stop_coords.get("lat")) and parsed_coords.get("lat"):
             stop_coords = parsed_coords
 
+    def _fetch_approach_ref(ref: tuple[str, str, str]) -> tuple[tuple[str, str, str], str | None]:
+        e_code, e_comp, e_sid = ref
+        try:
+            if e_code and e_comp:
+                return ref, fetch_approach_data(e_code, e_comp, force_refresh=force_refresh)
+            if e_sid:
+                return ref, fetch_approach_data_by_sid(e_sid, force_refresh=force_refresh)
+        except Exception:
+            return ref, None
+        return ref, None
+
+    def _fetch_approach_refs(refs: list[tuple[str, str, str]]) -> None:
+        unique_refs: list[tuple[str, str, str]] = []
+        seen_refs: set[tuple[str, str, str]] = set()
+        for ref in refs:
+            if ref in fetched_stop_refs or ref in seen_refs:
+                continue
+            seen_refs.add(ref)
+            unique_refs.append(ref)
+        if not unique_refs:
+            return
+        max_workers = min(APPROACH_FETCH_WORKERS, len(unique_refs))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            for ref_key, html_text in executor.map(_fetch_approach_ref, unique_refs):
+                if not html_text:
+                    continue
+                _append_buses_from_html(html_text)
+                fetched_stop_refs.add(ref_key)
+
     if station_sid_q:
         try:
             sid_html = fetch_approach_data_by_sid(station_sid_q, force_refresh=force_refresh)
@@ -2106,24 +2148,15 @@ def api_stop_approach():
             all_buses = []
 
     if explicit_stop_query and exact_named_stops:
-        for exact_stop in exact_named_stops:
-            e_code = str(exact_stop.get("stationCode") or "")
-            e_comp = str(exact_stop.get("companyId") or "")
-            e_sid = str(exact_stop.get("stationSid") or "")
-            try:
-                ref_key = (e_code, e_comp, e_sid)
-                if ref_key in fetched_stop_refs:
-                    continue
-                if e_code and e_comp:
-                    html = fetch_approach_data(e_code, e_comp, force_refresh=force_refresh)
-                elif e_sid:
-                    html = fetch_approach_data_by_sid(e_sid, force_refresh=force_refresh)
-                else:
-                    continue
-                _append_buses_from_html(html)
-                fetched_stop_refs.add(ref_key)
-            except Exception:
-                pass
+        exact_refs = [
+            (
+                str(exact_stop.get("stationCode") or ""),
+                str(exact_stop.get("companyId") or ""),
+                str(exact_stop.get("stationSid") or ""),
+            )
+            for exact_stop in exact_named_stops
+        ]
+        _fetch_approach_refs(exact_refs)
 
         # 同名停留所の複数のりば（同一名・別SID）を追加探索して取りこぼしを防ぐ。
         extra_sid_candidates: list[str] = []
@@ -2150,16 +2183,7 @@ def api_stop_approach():
                 seen_extra_sids.add(sid_text)
                 extra_sid_candidates.append(sid_text)
 
-        for sid in extra_sid_candidates:
-            ref_key = ("", "", sid)
-            if ref_key in fetched_stop_refs:
-                continue
-            try:
-                sid_html = fetch_approach_data_by_sid(sid, force_refresh=force_refresh)
-                _append_buses_from_html(sid_html)
-                fetched_stop_refs.add(ref_key)
-            except Exception:
-                pass
+        _fetch_approach_refs([("", "", sid) for sid in extra_sid_candidates])
 
     if not all_buses and station_code and company_id:
         try:
@@ -2179,16 +2203,7 @@ def api_stop_approach():
         except Exception:
             sids = []
 
-        for sid in sids:
-            try:
-                ref_key = ("", "", str(sid or ""))
-                if ref_key in fetched_stop_refs:
-                    continue
-                sid_html = fetch_approach_data_by_sid(sid, force_refresh=force_refresh)
-                _append_buses_from_html(sid_html)
-                fetched_stop_refs.add(ref_key)
-            except Exception:
-                pass
+        _fetch_approach_refs([("", "", str(sid or "")) for sid in sids])
 
     if not all_buses:
         # フォールバック: 旧 stationCode + companyId 方式
@@ -2280,12 +2295,8 @@ def api_stop_approach():
         prioritized_buses = sorted(buses, key=_bus_score)
 
     enrich_targets = prioritized_buses[:gps_limit_q]
-    enrich_ids = {id(b) for b in enrich_targets}
 
-    # 公式APIでバス位置情報をエンリッチ（運行中のバスのみ、失敗しても既存データで返す）
-    for bus in buses:
-        if id(bus) not in enrich_ids:
-            continue
+    def _fetch_bus_location_for_enrich(bus: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any] | None]:
         bus_info = bus.get("busInfo") or {}
         c_sid = bus_info.get("courseSid") or ""
         c_id = bus_info.get("companyId") or ""
@@ -2294,7 +2305,7 @@ def api_stop_approach():
         k_cd = bus_info.get("keiyuCd") or ""
 
         if not (c_sid and c_id and b_id):
-            continue
+            return bus, None
 
         try:
             loc_data = fetch_bus_location(
@@ -2304,8 +2315,17 @@ def api_stop_approach():
                 keiyu_cd=k_cd,
                 daiya_sid=d_sid,
             )
-            loc = parse_bus_location_data(loc_data)
-            if loc:
+            return bus, parse_bus_location_data(loc_data)
+        except Exception:
+            return bus, None
+
+    # 公式APIでバス位置情報をエンリッチ（運行中のバスのみ、失敗しても既存データで返す）
+    if enrich_targets:
+        max_workers = min(BUS_LOCATION_FETCH_WORKERS, len(enrich_targets))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            for bus, loc in executor.map(_fetch_bus_location_for_enrich, enrich_targets):
+                if not loc:
+                    continue
                 bus["gpsLat"] = loc.get("gpsLat")
                 bus["gpsLng"] = loc.get("gpsLng")
                 bus["gpsTime"] = loc.get("gpsTime") or ""
@@ -2313,8 +2333,6 @@ def api_stop_approach():
                 bus["nextStopName"] = loc.get("nextStopName") or ""
                 bus["scheduledArrival"] = loc.get("scheduledArrival") or ""
                 bus["passageStops"] = loc.get("passageStops") or []
-        except Exception:
-            pass  # APIが失敗してもHTMLスクレイピング結果で継続
 
     try:
         direction_options = get_stop_direction_options(str(stop.get("name") or stop_name or ""), datetime.now().strftime("%Y/%m/%d"))
