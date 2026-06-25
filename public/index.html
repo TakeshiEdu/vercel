@@ -4764,43 +4764,33 @@
         return;
       }
 
-      const shouldForceRefresh = Boolean(options.forceRefresh);
-      const gpsLimit = shouldForceRefresh ? 8 : 4;
       if (!options.silent) {
         state.myBusCardData = state.myBusStops.map((entry) => ({ entry, loading: true }));
         renderHomeMyBusCards();
       }
 
-      const rows = state.myBusStops.map((entry) => ({ entry, loading: true }));
-      if (options.silent) {
-        state.myBusCardData = rows;
-        renderHomeMyBusCards();
-      }
-
-      await Promise.all(state.myBusStops.map(async (entry, index) => {
+      const rows = await Promise.all(state.myBusStops.map(async (entry) => {
         try {
-          const data = await fetchApproachDataByStop(entry.stopName, {
-            refresh: shouldForceRefresh,
-            gpsLimit,
-          });
+          const data = await fetchApproachDataByStop(entry.stopName, { refresh: true, gpsLimit: 10 });
           const buses = filterBusesForMyBusEntry(data.buses || [], entry);
           const directionOptions = Array.isArray(data.directionOptions) ? data.directionOptions : [];
-          rows[index] = {
+          return {
             entry,
             resolvedStop: data.stop || entry.stopName,
             bus: pickApproachMainBus(buses),
             nextScheduled: directionOptions.find((item) => item.key === entry.directionKey) || null,
           };
         } catch (_) {
-          rows[index] = {
+          return {
             entry,
             bus: null,
             error: "取得できませんでした",
           };
         }
-        state.myBusCardData = [...rows];
-        renderHomeMyBusCards();
       }));
+
+      state.myBusCardData = rows;
+      renderHomeMyBusCards();
     }
 
     async function renderSuggest(targetInput, targetBox, query, targetName) {
@@ -5203,7 +5193,7 @@
     });
 
     showMyBusNowBtn.addEventListener("click", async () => {
-      await updateHomeMyBusCards({ forceRefresh: true });
+      await updateHomeMyBusCards();
       const shown = await loadMyBusHomeData("設定から手動表示");
       if (shown) {
         showScreen("home");
@@ -5213,7 +5203,7 @@
     });
 
     refreshMyBusCardsBtn.addEventListener("click", () => {
-      updateHomeMyBusCards({ forceRefresh: true });
+      updateHomeMyBusCards();
     });
 
     closeBusTimelineBtn.addEventListener("click", () => {
