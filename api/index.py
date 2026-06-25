@@ -35,7 +35,6 @@ _HTTP = requests.Session()
 _TTL_CACHE: dict[str, tuple[float, Any]] = {}
 APPROACH_FETCH_WORKERS = 4
 BUS_LOCATION_FETCH_WORKERS = 4
-ROUTE_SEARCH_WORKERS = 4
 
 
 def _cache_get(key: str) -> Any | None:
@@ -2494,7 +2493,7 @@ def api_search_routes():
 
     fast_route_results: list[tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]]]] = []
     if fast_candidate_pairs:
-        max_workers = min(ROUTE_SEARCH_WORKERS, len(fast_candidate_pairs))
+        max_workers = min(4, len(fast_candidate_pairs))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             fast_route_results = list(executor.map(_fetch_fast_routes, fast_candidate_pairs))
 
