@@ -1904,6 +1904,67 @@ def _collect_runs_for_sid_pair(
     return pair_results
 
 
+def _collect_runs_from_transit_routes(
+    routes: list[dict[str, Any]],
+    search_mode: str,
+    query_minutes: int | None,
+    limit: int,
+) -> list[dict[str, Any]]:
+    """Transit/Result だけで表示候補を作る高速パス。
+
+    TimeTableAll / RouteDetail の追加取得を待たず、公式の経路検索結果に含まれる
+    発着時刻・系統・停留所名をそのまま使う。
+    """
+    results: list[dict[str, Any]] = []
+    for route in routes:
+        departure_time = str(route.get("departureTime") or "").strip()
+        arrival_time = str(route.get("arrivalTime") or "").strip()
+        dep_minutes = _to_minutes(departure_time)
+        arr_minutes = _to_minutes(arrival_time)
+
+        if query_minutes is not None and search_mode != "arrive":
+            if dep_minutes is None or dep_minutes < query_minutes:
+                continue
+        if query_minutes is not None and search_mode == "arrive":
+            if arr_minutes is None or arr_minutes > query_minutes:
+                continue
+
+        segments = route.get("segments") or []
+        first_segment = segments[0] if segments else {}
+        last_segment = segments[-1] if segments else {}
+        station_names = [str(s).strip() for s in (route.get("stationNames") or []) if str(s).strip()]
+        stops = [{"name": name, "time": ""} for name in station_names]
+        if stops and departure_time:
+            stops[0]["time"] = departure_time
+        if len(stops) > 1 and arrival_time:
+            stops[-1]["time"] = arrival_time
+
+        results.append(
+            {
+                "time": departure_time,
+                "line": first_segment.get("line") or "",
+                "destination": last_segment.get("alightingStop") or route.get("alightingStop") or "",
+                "arrivalTime": arrival_time,
+                "arrivalIsEstimate": False,
+                "stops": stops,
+                "fastTransitResult": True,
+            }
+        )
+        if len(results) >= max(limit, 1):
+            break
+
+    return results
+
+
+def _stop_ref_from_candidate(stop_info: dict[str, Any], fallback_name: str) -> dict[str, str]:
+    return {
+        "name": str(stop_info.get("Text") or stop_info.get("Name") or fallback_name),
+        "stationSid": str(stop_info.get("StationSid") or stop_info.get("stationSid") or ""),
+        "stationCode": str(stop_info.get("StationCode") or stop_info.get("stationCode") or ""),
+        "companyId": str(stop_info.get("CompanyId") or stop_info.get("CompanyID") or stop_info.get("companyId") or ""),
+    }
+
+
 @app.after_request
 def no_cache(response):
     path = request.path
@@ -2394,8 +2455,11 @@ def api_search_routes():
     if not from_name or not to_name:
         return jsonify({"error": "出発バス停と到着バス停を入力してください。"}), 400
 
-    from_candidates = get_stop_candidates(from_name)
-    to_candidates = get_stop_candidates(to_name)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        from_future = executor.submit(get_stop_candidates, from_name)
+        to_future = executor.submit(get_stop_candidates, to_name)
+        from_candidates = from_future.result()
+        to_candidates = to_future.result()
     if not from_candidates or not to_candidates:
         return jsonify({"error": "バス停が見つかりませんでした。候補から選択してください。"}), 404
 
@@ -2405,6 +2469,58 @@ def api_search_routes():
     query_minutes = _to_minutes(query_time)
     max_sid_pairs = max(2, min(int(body.get("maxSidPairs", 12)), 24))
     deep_transfer_search = bool(body.get("deepTransferSearch", False))
+
+    fast_candidate_pairs = [
+        (f, t)
+        for f in from_candidates[:2]
+        for t in to_candidates[:2]
+    ]
+
+    def _fetch_fast_routes(pair: tuple[dict[str, Any], dict[str, Any]]) -> tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]]]:
+        f, t = pair
+        try:
+            routes = fetch_transit_routes(
+                f,
+                t,
+                query_time,
+                sort_type="Time",
+                search_kbn=1,
+                ttl_sec=20,
+            )
+        except Exception:
+            routes = []
+        return f, t, routes
+
+    fast_route_results: list[tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]]]] = []
+    if fast_candidate_pairs:
+        max_workers = min(4, len(fast_candidate_pairs))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            fast_route_results = list(executor.map(_fetch_fast_routes, fast_candidate_pairs))
+
+    for fast_from, fast_to, fast_routes in fast_route_results:
+        fast_runs = _collect_runs_from_transit_routes(
+            fast_routes,
+            search_mode=search_mode,
+            query_minutes=query_minutes,
+            limit=limit,
+        )
+        if not fast_runs:
+            continue
+
+        resolved_from = str(fast_from.get("Text") or from_name)
+        resolved_to = str(fast_to.get("Text") or to_name)
+        return jsonify(
+            {
+                "from": resolved_from,
+                "to": resolved_to,
+                "date": unyou_date,
+                "runs": fast_runs,
+                "transferHints": [],
+                "fallback": "",
+                "fromStop": _stop_ref_from_candidate(fast_from, resolved_from),
+                "toStop": _stop_ref_from_candidate(fast_to, resolved_to),
+            }
+        )
 
     sid_pairs: list[tuple[dict[str, Any], dict[str, Any], str]] = []
     seen_sid_pairs: set[tuple[str, str, str]] = set()
