@@ -4,6 +4,7 @@ import json
 import math
 import re
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -32,6 +33,9 @@ app = Flask(__name__, static_folder=str(STITCH_DIR), static_url_path="")
 
 _HTTP = requests.Session()
 _TTL_CACHE: dict[str, tuple[float, Any]] = {}
+APPROACH_FETCH_WORKERS = 4
+BUS_LOCATION_FETCH_WORKERS = 4
+ROUTE_SEARCH_WORKERS = 4
 
 
 def _cache_get(key: str) -> Any | None:
@@ -1901,6 +1905,67 @@ def _collect_runs_for_sid_pair(
     return pair_results
 
 
+def _collect_runs_from_transit_routes(
+    routes: list[dict[str, Any]],
+    search_mode: str,
+    query_minutes: int | None,
+    limit: int,
+) -> list[dict[str, Any]]:
+    """Transit/Result だけで表示候補を作る高速パス。
+
+    TimeTableAll / RouteDetail の追加取得を待たず、公式の経路検索結果に含まれる
+    発着時刻・系統・停留所名をそのまま使う。
+    """
+    results: list[dict[str, Any]] = []
+    for route in routes:
+        departure_time = str(route.get("departureTime") or "").strip()
+        arrival_time = str(route.get("arrivalTime") or "").strip()
+        dep_minutes = _to_minutes(departure_time)
+        arr_minutes = _to_minutes(arrival_time)
+
+        if query_minutes is not None and search_mode != "arrive":
+            if dep_minutes is None or dep_minutes < query_minutes:
+                continue
+        if query_minutes is not None and search_mode == "arrive":
+            if arr_minutes is None or arr_minutes > query_minutes:
+                continue
+
+        segments = route.get("segments") or []
+        first_segment = segments[0] if segments else {}
+        last_segment = segments[-1] if segments else {}
+        station_names = [str(s).strip() for s in (route.get("stationNames") or []) if str(s).strip()]
+        stops = [{"name": name, "time": ""} for name in station_names]
+        if stops and departure_time:
+            stops[0]["time"] = departure_time
+        if len(stops) > 1 and arrival_time:
+            stops[-1]["time"] = arrival_time
+
+        results.append(
+            {
+                "time": departure_time,
+                "line": first_segment.get("line") or "",
+                "destination": last_segment.get("alightingStop") or route.get("alightingStop") or "",
+                "arrivalTime": arrival_time,
+                "arrivalIsEstimate": False,
+                "stops": stops,
+                "fastTransitResult": True,
+            }
+        )
+        if len(results) >= max(limit, 1):
+            break
+
+    return results
+
+
+def _stop_ref_from_candidate(stop_info: dict[str, Any], fallback_name: str) -> dict[str, str]:
+    return {
+        "name": str(stop_info.get("Text") or stop_info.get("Name") or fallback_name),
+        "stationSid": str(stop_info.get("StationSid") or stop_info.get("stationSid") or ""),
+        "stationCode": str(stop_info.get("StationCode") or stop_info.get("stationCode") or ""),
+        "companyId": str(stop_info.get("CompanyId") or stop_info.get("CompanyID") or stop_info.get("companyId") or ""),
+    }
+
+
 @app.after_request
 def no_cache(response):
     path = request.path
@@ -2031,14 +2096,24 @@ def api_stop_approach():
     if explicit_stop_query:
         norm_query = _normalize_stop_name(stop_name)
         norm_query_base = _normalize_stop_name_base(stop_name)
-        try:
-            candidates_by_name = suggest_stops(stop_name)
-        except Exception:
-            candidates_by_name = []
-        try:
-            transit_candidates = get_stop_candidates(stop_name, limit=12)
-        except Exception:
-            transit_candidates = []
+
+        def _load_approach_candidates() -> list[dict[str, Any]]:
+            try:
+                return suggest_stops(stop_name)
+            except Exception:
+                return []
+
+        def _load_transit_candidates() -> list[dict[str, Any]]:
+            try:
+                return get_stop_candidates(stop_name, limit=12)
+            except Exception:
+                return []
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            approach_future = executor.submit(_load_approach_candidates)
+            transit_future = executor.submit(_load_transit_candidates)
+            candidates_by_name = approach_future.result()
+            transit_candidates = transit_future.result()
 
         merged_candidates: list[dict[str, Any]] = list(candidates_by_name)
         for tc in transit_candidates:
@@ -2097,6 +2172,35 @@ def api_stop_approach():
         if (not stop_coords.get("lat")) and parsed_coords.get("lat"):
             stop_coords = parsed_coords
 
+    def _fetch_approach_ref(ref: tuple[str, str, str]) -> tuple[tuple[str, str, str], str | None]:
+        e_code, e_comp, e_sid = ref
+        try:
+            if e_code and e_comp:
+                return ref, fetch_approach_data(e_code, e_comp, force_refresh=force_refresh)
+            if e_sid:
+                return ref, fetch_approach_data_by_sid(e_sid, force_refresh=force_refresh)
+        except Exception:
+            return ref, None
+        return ref, None
+
+    def _fetch_approach_refs(refs: list[tuple[str, str, str]]) -> None:
+        unique_refs: list[tuple[str, str, str]] = []
+        seen_refs: set[tuple[str, str, str]] = set()
+        for ref in refs:
+            if ref in fetched_stop_refs or ref in seen_refs:
+                continue
+            seen_refs.add(ref)
+            unique_refs.append(ref)
+        if not unique_refs:
+            return
+        max_workers = min(APPROACH_FETCH_WORKERS, len(unique_refs))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            for ref_key, html_text in executor.map(_fetch_approach_ref, unique_refs):
+                if not html_text:
+                    continue
+                _append_buses_from_html(html_text)
+                fetched_stop_refs.add(ref_key)
+
     if station_sid_q:
         try:
             sid_html = fetch_approach_data_by_sid(station_sid_q, force_refresh=force_refresh)
@@ -2106,24 +2210,15 @@ def api_stop_approach():
             all_buses = []
 
     if explicit_stop_query and exact_named_stops:
-        for exact_stop in exact_named_stops:
-            e_code = str(exact_stop.get("stationCode") or "")
-            e_comp = str(exact_stop.get("companyId") or "")
-            e_sid = str(exact_stop.get("stationSid") or "")
-            try:
-                ref_key = (e_code, e_comp, e_sid)
-                if ref_key in fetched_stop_refs:
-                    continue
-                if e_code and e_comp:
-                    html = fetch_approach_data(e_code, e_comp, force_refresh=force_refresh)
-                elif e_sid:
-                    html = fetch_approach_data_by_sid(e_sid, force_refresh=force_refresh)
-                else:
-                    continue
-                _append_buses_from_html(html)
-                fetched_stop_refs.add(ref_key)
-            except Exception:
-                pass
+        exact_refs = [
+            (
+                str(exact_stop.get("stationCode") or ""),
+                str(exact_stop.get("companyId") or ""),
+                str(exact_stop.get("stationSid") or ""),
+            )
+            for exact_stop in exact_named_stops
+        ]
+        _fetch_approach_refs(exact_refs)
 
         # 同名停留所の複数のりば（同一名・別SID）を追加探索して取りこぼしを防ぐ。
         extra_sid_candidates: list[str] = []
@@ -2150,16 +2245,7 @@ def api_stop_approach():
                 seen_extra_sids.add(sid_text)
                 extra_sid_candidates.append(sid_text)
 
-        for sid in extra_sid_candidates:
-            ref_key = ("", "", sid)
-            if ref_key in fetched_stop_refs:
-                continue
-            try:
-                sid_html = fetch_approach_data_by_sid(sid, force_refresh=force_refresh)
-                _append_buses_from_html(sid_html)
-                fetched_stop_refs.add(ref_key)
-            except Exception:
-                pass
+        _fetch_approach_refs([("", "", sid) for sid in extra_sid_candidates])
 
     if not all_buses and station_code and company_id:
         try:
@@ -2179,16 +2265,7 @@ def api_stop_approach():
         except Exception:
             sids = []
 
-        for sid in sids:
-            try:
-                ref_key = ("", "", str(sid or ""))
-                if ref_key in fetched_stop_refs:
-                    continue
-                sid_html = fetch_approach_data_by_sid(sid, force_refresh=force_refresh)
-                _append_buses_from_html(sid_html)
-                fetched_stop_refs.add(ref_key)
-            except Exception:
-                pass
+        _fetch_approach_refs([("", "", str(sid or "")) for sid in sids])
 
     if not all_buses:
         # フォールバック: 旧 stationCode + companyId 方式
@@ -2280,12 +2357,8 @@ def api_stop_approach():
         prioritized_buses = sorted(buses, key=_bus_score)
 
     enrich_targets = prioritized_buses[:gps_limit_q]
-    enrich_ids = {id(b) for b in enrich_targets}
 
-    # 公式APIでバス位置情報をエンリッチ（運行中のバスのみ、失敗しても既存データで返す）
-    for bus in buses:
-        if id(bus) not in enrich_ids:
-            continue
+    def _fetch_bus_location_for_enrich(bus: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any] | None]:
         bus_info = bus.get("busInfo") or {}
         c_sid = bus_info.get("courseSid") or ""
         c_id = bus_info.get("companyId") or ""
@@ -2294,7 +2367,7 @@ def api_stop_approach():
         k_cd = bus_info.get("keiyuCd") or ""
 
         if not (c_sid and c_id and b_id):
-            continue
+            return bus, None
 
         try:
             loc_data = fetch_bus_location(
@@ -2304,8 +2377,17 @@ def api_stop_approach():
                 keiyu_cd=k_cd,
                 daiya_sid=d_sid,
             )
-            loc = parse_bus_location_data(loc_data)
-            if loc:
+            return bus, parse_bus_location_data(loc_data)
+        except Exception:
+            return bus, None
+
+    # 公式APIでバス位置情報をエンリッチ（運行中のバスのみ、失敗しても既存データで返す）
+    if enrich_targets:
+        max_workers = min(BUS_LOCATION_FETCH_WORKERS, len(enrich_targets))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            for bus, loc in executor.map(_fetch_bus_location_for_enrich, enrich_targets):
+                if not loc:
+                    continue
                 bus["gpsLat"] = loc.get("gpsLat")
                 bus["gpsLng"] = loc.get("gpsLng")
                 bus["gpsTime"] = loc.get("gpsTime") or ""
@@ -2313,8 +2395,6 @@ def api_stop_approach():
                 bus["nextStopName"] = loc.get("nextStopName") or ""
                 bus["scheduledArrival"] = loc.get("scheduledArrival") or ""
                 bus["passageStops"] = loc.get("passageStops") or []
-        except Exception:
-            pass  # APIが失敗してもHTMLスクレイピング結果で継続
 
     try:
         direction_options = get_stop_direction_options(str(stop.get("name") or stop_name or ""), datetime.now().strftime("%Y/%m/%d"))
@@ -2376,8 +2456,11 @@ def api_search_routes():
     if not from_name or not to_name:
         return jsonify({"error": "出発バス停と到着バス停を入力してください。"}), 400
 
-    from_candidates = get_stop_candidates(from_name)
-    to_candidates = get_stop_candidates(to_name)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        from_future = executor.submit(get_stop_candidates, from_name)
+        to_future = executor.submit(get_stop_candidates, to_name)
+        from_candidates = from_future.result()
+        to_candidates = to_future.result()
     if not from_candidates or not to_candidates:
         return jsonify({"error": "バス停が見つかりませんでした。候補から選択してください。"}), 404
 
@@ -2387,6 +2470,58 @@ def api_search_routes():
     query_minutes = _to_minutes(query_time)
     max_sid_pairs = max(2, min(int(body.get("maxSidPairs", 12)), 24))
     deep_transfer_search = bool(body.get("deepTransferSearch", False))
+
+    fast_candidate_pairs = [
+        (f, t)
+        for f in from_candidates[:2]
+        for t in to_candidates[:2]
+    ]
+
+    def _fetch_fast_routes(pair: tuple[dict[str, Any], dict[str, Any]]) -> tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]]]:
+        f, t = pair
+        try:
+            routes = fetch_transit_routes(
+                f,
+                t,
+                query_time,
+                sort_type="Time",
+                search_kbn=1,
+                ttl_sec=20,
+            )
+        except Exception:
+            routes = []
+        return f, t, routes
+
+    fast_route_results: list[tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]]]] = []
+    if fast_candidate_pairs:
+        max_workers = min(ROUTE_SEARCH_WORKERS, len(fast_candidate_pairs))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            fast_route_results = list(executor.map(_fetch_fast_routes, fast_candidate_pairs))
+
+    for fast_from, fast_to, fast_routes in fast_route_results:
+        fast_runs = _collect_runs_from_transit_routes(
+            fast_routes,
+            search_mode=search_mode,
+            query_minutes=query_minutes,
+            limit=limit,
+        )
+        if not fast_runs:
+            continue
+
+        resolved_from = str(fast_from.get("Text") or from_name)
+        resolved_to = str(fast_to.get("Text") or to_name)
+        return jsonify(
+            {
+                "from": resolved_from,
+                "to": resolved_to,
+                "date": unyou_date,
+                "runs": fast_runs,
+                "transferHints": [],
+                "fallback": "",
+                "fromStop": _stop_ref_from_candidate(fast_from, resolved_from),
+                "toStop": _stop_ref_from_candidate(fast_to, resolved_to),
+            }
+        )
 
     sid_pairs: list[tuple[dict[str, Any], dict[str, Any], str]] = []
     seen_sid_pairs: set[tuple[str, str, str]] = set()
